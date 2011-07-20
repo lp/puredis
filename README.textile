@@ -6,8 +6,7 @@ h2. Usage:
 
 !https://github.com/lp/puredis/raw/master/img/puredis-help.png!
 
-bc.
-SET: symbol OK
+bc. SET: symbol OK
 GET: symbol BAR
 LPUSH: 1
 LPOP: symbol VALUE1
