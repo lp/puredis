@@ -1,0 +1,29 @@
+h1. Puredis
+
+h3. "Redis":http://redis.io/ external for "Pure Data":http://puredata.info/.
+
+h2. Usage:
+
+!https://github.com/lp/puredis/raw/master/img/puredis-help.tiff!
+
+bc.
+SET: symbol OK
+GET: symbol BAR
+LPUSH: 1
+LPOP: symbol VALUE1
+LRANGE: bang
+HMSET: symbol OK
+HGET: symbol value2
+HMGET: list value1 value3
+HVALS: list value1 value2 value3
+SADD: 1
+SADD: 1
+SADD: 1
+SADD: 1
+SADD: 1
+SINTER: bang
+SUNION: list C A B
+ZADD: 1
+ZINCRBY: symbol 1
+ZRANGEBYSCORE: bang
+
