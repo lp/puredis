@@ -9,8 +9,10 @@ h2. Usage:
 bc. SET: symbol OK
 GET: symbol BAR
 LPUSH: 1
-LPOP: symbol VALUE1
-LRANGE: bang
+LPUSH: 2
+LPUSH: 3
+LPOP: symbol VALUE3
+LRANGE: list VALUE2 VALUE1
 HMSET: symbol OK
 HGET: symbol value2
 HMGET: list value1 value3
@@ -20,9 +22,14 @@ SADD: 1
 SADD: 1
 SADD: 1
 SADD: 1
-SINTER: bang
+SINTER: symbol C
 SUNION: list C A B
 ZADD: 1
-ZINCRBY: symbol 1
-ZRANGEBYSCORE: bang
+ZADD: 1
+ZADD: 1
+ZADD: 1
+ZADD: 1
+ZINCRBY: symbol 4
+ZRANGEBYSCORE: list D 10 E 100
+ZRANGE: list A 1 B 2 C 4
 
