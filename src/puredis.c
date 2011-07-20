@@ -136,4 +136,5 @@ void puredis_setup(void) {
     class_addmethod(puredis_class,
         (t_method)puredis_command, gensym("command"),
         A_GIMME, 0);
+    class_sethelpsymbol(puredis_class, gensym("puredis-help"));
 }
