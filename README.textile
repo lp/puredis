@@ -33,3 +33,8 @@ ZINCRBY: symbol 4
 ZRANGEBYSCORE: list D 10 E 100
 ZRANGE: list A 1 B 2 C 4
 
+h2. Async Puredis: apuredis
+
+!https://github.com/lp/puredis/raw/master/img/apuredis-help.png!
+
+
