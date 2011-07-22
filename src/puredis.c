@@ -242,7 +242,7 @@ static void setup_apuredis(void)
     class_addmethod(apuredis_class,
         (t_method)redis_command, gensym("command"),
         A_GIMME, 0);
-    class_sethelpsymbol(apuredis_class, gensym("puredis-help"));
+    class_sethelpsymbol(apuredis_class, gensym("apuredis-help"));
 }
 
 void puredis_setup(void) {
