@@ -49,14 +49,14 @@ h2. Pub/Sub Puredis: spuredis
 
 !https://github.com/lp/puredis/raw/master/img/spuredis-help.png!
 
-bc. subscriber: list subscribe CHAN_Z 1
-subscriber: list subscribe CHAN_X 2
-subscriber: list subscribe CHAN_D 3
-subscriber: list unsubscribe CHAN_D 2
+bc. subscriber: list subscribe X 6
+subscriber: list subscribe NORTH 6
+subscriber: list subscribe CHANNEL_Z 6
+subscriber: list unsubscribe X 5
 publisher: 1
-subscriber: list message CHAN_Z ZZZZZZ!
+subscriber: list message CHAN_Z BEEEZZZZ
 publisher: 1
-subscriber: list message CHAN_X XOXOXO!
+subscriber: list message NORTH HOHOHO
 publisher: 0
 
 
