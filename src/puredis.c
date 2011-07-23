@@ -10,7 +10,7 @@
 
 static t_class *puredis_class;
 static t_class *apuredis_class;
-static t_class *subredis_class;
+static t_class *spuredis_class;
 
 typedef struct _puredis {
     t_object x_obj;
@@ -164,7 +164,7 @@ void redis_command(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
     }
 }
 
-static void subredis_run(t_puredis *x) {
+static void spuredis_run(t_puredis *x) {
     if (x->sub_run) {
         void * tmpreply = NULL;
         if ( redisGetReply(x->redis, &tmpreply) == REDIS_ERR) return;
@@ -190,19 +190,17 @@ static void subredis_run(t_puredis *x) {
     }
 }
 
-static void subredis_schedule(t_puredis *x) {
+static void spuredis_schedule(t_puredis *x) {
     if (x->sub_run && x->sub_num < 1) {
         x->sub_run = 0;
         clock_unset(x->sub_clock);
     } else if ((!x->sub_run) && x->sub_num > 0) {
         x->sub_run = 1;
         clock_delay(x->sub_clock, 0);
-    } else {
-        post("bad schedule...");
     }
 }
 
-static void subredis_manage(t_puredis *x, t_symbol *s, int argc)
+static void spuredis_manage(t_puredis *x, t_symbol *s, int argc)
 {
     if (s == gensym("subscribe")) {
         x->sub_num = x->sub_num + argc;
@@ -210,18 +208,28 @@ static void subredis_manage(t_puredis *x, t_symbol *s, int argc)
         x->sub_num = x->sub_num - argc;
     }
     
-    subredis_schedule(x);
+    spuredis_schedule(x);
 }
 
-void subredis_stop(t_puredis *x, t_symbol *s)
+void spuredis_bang(t_puredis *x)
+{
+    spuredis_schedule(x);
+}
+
+void spuredis_start(t_puredis *x, t_symbol *s)
+{
+    spuredis_schedule(x);
+}
+
+void spuredis_stop(t_puredis *x, t_symbol *s)
 {
     x->sub_run = 0;
 }
 
-void subredis_subscribe(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
+void spuredis_subscribe(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
 {
     if (argc < 1) {
-        post("subredis: subscribe need at least one channel"); return;
+        post("spuredis: subscribe need at least one channel"); return;
     }
     
     int i;
@@ -259,7 +267,7 @@ void subredis_subscribe(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
         lengths[i+1] = strlen(vector[i+1]);
     }
     postCommandAsync(x, argc+1, vector, lengths);
-    subredis_manage(x, s, argc);
+    spuredis_manage(x, s, argc);
 }
 
 void *redis_new(t_symbol *s, int argc, t_atom *argv)
@@ -284,10 +292,10 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
         x = (t_puredis*)pd_new(apuredis_class);
         x->redis = redisConnectNonBlock((char*)host,port);
         x->async = 1; x->qcount = 0;
-    } else if (s == gensym("subredis")) {
-        x = (t_puredis*)pd_new(subredis_class);
+    } else if (s == gensym("spuredis")) {
+        x = (t_puredis*)pd_new(spuredis_class);
         x->redis = redisConnectNonBlock((char*)host,port);
-        x->sub_clock = clock_new(x, (t_method)subredis_run);
+        x->sub_clock = clock_new(x, (t_method)spuredis_run);
         x->sub_num = 0; x->sub_run = 0;
     } else {
         x = (t_puredis*)pd_new(puredis_class);
@@ -350,28 +358,31 @@ static void setup_apuredis(void)
     class_sethelpsymbol(apuredis_class, gensym("apuredis-help"));
 }
 
-static void setup_subredis(void)
+static void setup_spuredis(void)
 {
-    subredis_class = class_new(gensym("subredis"),
+    spuredis_class = class_new(gensym("spuredis"),
         (t_newmethod)redis_new,
         (t_method)redis_free,
         sizeof(t_puredis),
         CLASS_DEFAULT,
         A_GIMME, 0);
     
-    class_addmethod(subredis_class,
-        (t_method)subredis_stop, gensym("stop"),0);
-    class_addmethod(subredis_class,
-        (t_method)subredis_subscribe, gensym("subscribe"),
+    class_addbang(spuredis_class,spuredis_bang);
+    class_addmethod(spuredis_class,
+        (t_method)spuredis_stop, gensym("stop"),0);
+    class_addmethod(spuredis_class,
+        (t_method)spuredis_start, gensym("start"),0);
+    class_addmethod(spuredis_class,
+        (t_method)spuredis_subscribe, gensym("subscribe"),
         A_GIMME, 0);
-    class_addmethod(subredis_class,
-        (t_method)subredis_subscribe, gensym("unsubscribe"),
+    class_addmethod(spuredis_class,
+        (t_method)spuredis_subscribe, gensym("unsubscribe"),
         A_GIMME, 0);
-    class_sethelpsymbol(apuredis_class, gensym("apuredis-help"));
+    class_sethelpsymbol(spuredis_class, gensym("spuredis-help"));
 }
 
 void puredis_setup(void) {
     setup_puredis();
     setup_apuredis();
-    setup_subredis();
+    setup_spuredis();
 }
