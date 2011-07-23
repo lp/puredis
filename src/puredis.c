@@ -10,20 +10,26 @@
 
 static t_class *puredis_class;
 static t_class *apuredis_class;
+static t_class *subredis_class;
 
 typedef struct _puredis {
-    /*char * name;*/
     t_object x_obj;
-    int async;
-    int qcount;
-    t_outlet *q_out;
-    
     redisContext * redis;
     
     char * r_host;
     int r_port;
     int out_count;
     t_atom out[MAX_ARRAY_SIZE];
+    
+    /* async vars */
+    int async;
+    int qcount;
+    t_outlet *q_out;
+    
+    /* sub vars */
+    int sub_num;
+    int sub_run;
+    t_clock  *sub_clock;
     
 } t_puredis;
 
@@ -79,8 +85,8 @@ void parseReply(t_puredis *x, redisReply * reply)
 static void postCommandSync(t_puredis * x, int argc, char ** vector, size_t * lengths)
 {
     redisReply * reply = redisCommandArgv(x->redis, argc, (const char**)vector, (const size_t *)lengths);
-    parseReply(x,reply);
     freeVectorAndLengths(argc, vector, lengths);
+    parseReply(x,reply);
 }
 
 static void apuredis_q_out(t_puredis * x)
@@ -122,8 +128,6 @@ static void postCommandAsync(t_puredis * x, int argc, char ** vector, size_t * l
 {
     redisAppendCommandArgv(x->redis, argc, (const char**)vector, (const size_t *)lengths);
     freeVectorAndLengths(argc, vector, lengths);
-    x->qcount++;
-    apuredis_q_out(x);
 }
 
 void redis_command(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
@@ -153,23 +157,114 @@ void redis_command(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
     }
     if (x->async) {
         postCommandAsync(x, argc, vector, lengths);
+        x->qcount++;
+        apuredis_q_out(x);
     } else {
         postCommandSync(x, argc, vector, lengths);
     }
 }
 
+static void subredis_run(t_puredis *x) {
+    if (x->sub_run) {
+        void * tmpreply = NULL;
+        if ( redisGetReply(x->redis, &tmpreply) == REDIS_ERR) return;
+        if (tmpreply == NULL) {
+            int wdone = 0;
+            if (redisBufferWrite(x->redis,&wdone) == REDIS_ERR) return;
+            
+            if (redisBufferRead(x->redis) == REDIS_ERR)
+                return;
+            if (redisGetReplyFromReader(x->redis,&tmpreply) == REDIS_ERR)
+                return;
+            
+            if (tmpreply != NULL) {
+                redisReply * reply = (redisReply*)tmpreply;
+                parseReply(x, reply);
+            }
+        } else {
+            redisReply * reply = (redisReply*)tmpreply;
+            parseReply(x, reply);
+        }
+        
+        clock_delay(x->sub_clock, 100);
+    }
+}
+
+static void subredis_schedule(t_puredis *x) {
+    if (x->sub_run && x->sub_num < 1) {
+        x->sub_run = 0;
+        clock_unset(x->sub_clock);
+    } else if ((!x->sub_run) && x->sub_num > 0) {
+        x->sub_run = 1;
+        clock_delay(x->sub_clock, 0);
+    } else {
+        post("bad schedule...");
+    }
+}
+
+static void subredis_manage(t_puredis *x, t_symbol *s, int argc)
+{
+    if (s == gensym("subscribe")) {
+        x->sub_num = x->sub_num + argc;
+    } else {
+        x->sub_num = x->sub_num - argc;
+    }
+    
+    subredis_schedule(x);
+}
+
+void subredis_stop(t_puredis *x, t_symbol *s)
+{
+    x->sub_run = 0;
+}
+
+void subredis_subscribe(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
+{
+    if (argc < 1) {
+        post("subredis: subscribe need at least one channel"); return;
+    }
+    
+    int i;
+    char ** vector = NULL;
+    size_t * lengths = NULL;
+    
+    if (((vector = malloc((argc+1)*sizeof(char*))) == NULL) || ((lengths = malloc((argc+1)*sizeof(size_t))) == NULL)) {
+        post("puredis: can not proceed!!  Memory Error!"); return;
+    }
+    
+    /* setting subscribe or unscribe as redis first command part */
+    if (s == gensym("subscribe")) {
+        if ((vector[0] = malloc(strlen("subscribe")+1)) == NULL) {
+            post("puredis: can not proceed!!  Memory Error!"); return;
+        }
+        strcpy(vector[0], "subscribe");
+        lengths[0] = strlen(vector[0]);
+    } else {
+        if ((vector[0] = malloc(strlen("unsubscribe")+1)) == NULL) {
+            post("puredis: can not proceed!!  Memory Error!"); return;
+        }
+        strcpy(vector[0], "unsubscribe");
+        lengths[0] = strlen(vector[0]);
+    }
+    
+    for (i = 0; i < argc; i++) {
+        char cmdpart[256];
+        atom_string(argv+i, cmdpart, 256);
+        
+        if ((vector[i+1] = malloc(strlen(cmdpart)+1)) == NULL) {
+            post("puredis: can not proceed!!  Memory Error!"); return;
+        }
+        
+        strcpy(vector[i+1], (char*)cmdpart);
+        lengths[i+1] = strlen(vector[i+1]);
+    }
+    postCommandAsync(x, argc+1, vector, lengths);
+    subredis_manage(x, s, argc);
+}
+
 void *redis_new(t_symbol *s, int argc, t_atom *argv)
 {
     t_puredis *x = NULL;
-    if (s == gensym("apuredis")) {
-        /* x->name = "apuredis"; */
-        x = (t_puredis*)pd_new(apuredis_class);
-        x->async = 1; x->qcount = 0;
-    } else {
-        /* x->name = "puredis"; */
-        x = (t_puredis*)pd_new(puredis_class);
-        x->async = 0;
-    }
     
     int port = 6379;
     char host[16] = "127.0.0.1";
@@ -185,21 +280,31 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
             break;
     }
     
+    if (s == gensym("apuredis")) {
+        x = (t_puredis*)pd_new(apuredis_class);
+        x->redis = redisConnectNonBlock((char*)host,port);
+        x->async = 1; x->qcount = 0;
+    } else if (s == gensym("subredis")) {
+        x = (t_puredis*)pd_new(subredis_class);
+        x->redis = redisConnectNonBlock((char*)host,port);
+        x->sub_clock = clock_new(x, (t_method)subredis_run);
+        x->sub_num = 0; x->sub_run = 0;
+    } else {
+        x = (t_puredis*)pd_new(puredis_class);
+        x->redis = redisConnect((char*)host,port);
+        x->async = 0;
+    }
     x->r_host = (char*)host;
     x->r_port = port;
-    
     outlet_new(&x->x_obj, NULL);
     if (x->async) {
-        x->redis = redisConnectNonBlock(x->r_host,x->r_port);
         x->q_out = outlet_new(&x->x_obj, &s_float);
-    } else {
-        x->redis = redisConnect(x->r_host,x->r_port);
     }
+    
     if (x->redis->err) {
         post("could not connect to redis...");
         return NULL;
     }
-    
     post("connected to redis host: %s port: %u", x->r_host, x->r_port);
     
     return (void*)x;
@@ -245,7 +350,28 @@ static void setup_apuredis(void)
     class_sethelpsymbol(apuredis_class, gensym("apuredis-help"));
 }
 
+static void setup_subredis(void)
+{
+    subredis_class = class_new(gensym("subredis"),
+        (t_newmethod)redis_new,
+        (t_method)redis_free,
+        sizeof(t_puredis),
+        CLASS_DEFAULT,
+        A_GIMME, 0);
+    
+    class_addmethod(subredis_class,
+        (t_method)subredis_stop, gensym("stop"),0);
+    class_addmethod(subredis_class,
+        (t_method)subredis_subscribe, gensym("subscribe"),
+        A_GIMME, 0);
+    class_addmethod(subredis_class,
+        (t_method)subredis_subscribe, gensym("unsubscribe"),
+        A_GIMME, 0);
+    class_sethelpsymbol(apuredis_class, gensym("apuredis-help"));
+}
+
 void puredis_setup(void) {
     setup_puredis();
     setup_apuredis();
+    setup_subredis();
 }
