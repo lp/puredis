@@ -37,4 +37,26 @@ h2. Async Puredis: apuredis
 
 !https://github.com/lp/puredis/raw/master/img/apuredis-help.png!
 
+bc. right: 1
+bang: bang
+right: 1
+bang: bang
+...
+left: symbol BAR
+right: 0
+
+h2. Pub/Sub Puredis: spuredis
+
+!https://github.com/lp/puredis/raw/master/img/spuredis-help.png!
+
+bc. subscriber: list subscribe CHAN_Z 1
+subscriber: list subscribe CHAN_X 2
+subscriber: list subscribe CHAN_D 3
+subscriber: list unsubscribe CHAN_D 2
+publisher: 1
+subscriber: list message CHAN_Z ZZZZZZ!
+publisher: 1
+subscriber: list message CHAN_X XOXOXO!
+publisher: 0
+
 
