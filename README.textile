@@ -59,4 +59,10 @@ publisher: 1
 subscriber: list message NORTH HOHOHO
 publisher: 0
 
+h2. Build
+
+!https://github.com/lp/puredis/tarball/master!
+
+bc. cd puredis
+make
 
