@@ -2,6 +2,14 @@ h1. Puredis
 
 h3. "Redis":http://redis.io/ external for "Pure Data":http://puredata.info/.
 
+h2. Build
+
+bc. wget https://github.com/lp/puredis/tarball/master
+PUREDIS_SRC=`find . -name lp-puredis-* -print`
+tar xzf $PUREDIS_SRC
+cd ${PUREDIS_SRC:0:20}
+make
+
 h2. Usage:
 
 !https://github.com/lp/puredis/raw/master/img/puredis-help.png!
@@ -58,11 +66,4 @@ subscriber: list message CHANNEL_Z BEEEZZZZ
 publisher: 1
 subscriber: list message NORTH HOHOHO
 publisher: 0
-
-h2. Build
-
-!https://github.com/lp/puredis/tarball/master!
-
-bc. cd puredis
-make
 
