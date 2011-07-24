@@ -1,0 +1,35 @@
+#N canvas 537 59 588 430 10;
+#X msg 122 145 stop;
+#X obj 37 349 puredis;
+#X obj 61 222 print subscriber;
+#X obj 52 386 print publisher;
+#X text 25 10 subredis: Redis pub/sub subscriber;
+#X text 25 40 SUBSCRIBE:;
+#X text 27 254 PUBLISH:;
+#X msg 129 166 start;
+#X text 232 69 -> subscribing to channels CHAN_Z \, CHAN_X and CHAN_D
+;
+#X text 218 91 >> subscriber starts the watching;
+#X text 207 116 -> unsuscribing to CHAN_D \, stopping the watcher if
+it's last;
+#X text 197 143 -> stop the watcher;
+#X text 188 168 -> start the watcher;
+#X text 178 191 -> subredis: redis sub(scriber) Outputs Redis Multi-Bulks
+replies as list;
+#X text 252 285 -> publishing can be done in puredis and apuredis;
+#X obj 94 192 spuredis;
+#X text 254 327 -> Nobody Listens;
+#X msg 29 69 subscribe X NORTH CHANNEL_Z;
+#X msg 76 117 unsubscribe X;
+#X msg 50 327 command publish X DBDBDB!;
+#X msg 40 307 command publish NORTH HOHOHO;
+#X msg 31 286 command publish CHANNEL_Z BEEEZZZZ;
+#X connect 0 0 15 0;
+#X connect 1 0 3 0;
+#X connect 7 0 15 0;
+#X connect 15 0 2 0;
+#X connect 17 0 15 0;
+#X connect 18 0 15 0;
+#X connect 19 0 1 0;
+#X connect 20 0 1 0;
+#X connect 21 0 1 0;
