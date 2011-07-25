@@ -1,3 +1,22 @@
+/*
+Copyright (c) 2011 Louis-Philippe Perron
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 #include "m_pd.h"
 #include <hiredis.h>
 #include <async.h>
@@ -5,6 +24,10 @@
 #include <string.h>
 
 /* gcc -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace -arch i386 -I/Applications/Pd-extended.app/Contents/Resources/include -I./hiredis/includes ./hiredis/libhiredis.a -o puredis.pd_darwin puredis.c */
+
+#define PUREDIS_MAJOR 0
+#define PUREDIS_MINOR 3
+#define PUREDIS_PATCH 3
 
 #define MAX_ARRAY_SIZE 512
 
@@ -313,7 +336,7 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
         post("could not connect to redis...");
         return NULL;
     }
-    post("connected to redis host: %s port: %u", x->r_host, x->r_port);
+    post("Puredis %i.%i.%i connected to redis host: %s port: %u", PUREDIS_MAJOR, PUREDIS_MINOR, PUREDIS_PATCH, x->r_host, x->r_port);
     
     return (void*)x;
 }
