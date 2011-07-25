@@ -1,0 +1,8 @@
+0.3 2011-07-22
+  spuredis subdcriber client
+
+0.2 2011-07-19
+  apuredis async client
+
+0.1 2011-07-15
+  puredis sync client
