@@ -58,7 +58,7 @@ install:
 
 # compile
 $(puredis_$(PLATFORM)): $(puredis_src) $(HIREDISD)/build.stamp
-	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) -o $(puredis_$(PLATFORM)) $(puredis_src) $(HIREDISL) $(LIBS_$(PLATFORM))
+	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL) -o $(puredis_$(PLATFORM)) $(puredis_src)
 
 # get hiredis: download, unpack, compile, install locally
 $(HIREDISD)/build.stamp: $(HIREDISD)/unpack.stamp
