@@ -28,6 +28,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define PUREDIS_MAJOR 0
 #define PUREDIS_MINOR 3
 #define PUREDIS_PATCH 3
+#define PD_MAJOR_VERSION 0
+#define PD_MINOR_VERSION 42
 
 #define MAX_ARRAY_SIZE 512
 
@@ -408,4 +410,6 @@ void puredis_setup(void) {
     setup_puredis();
     setup_apuredis();
     setup_spuredis();
+    post("Puredis %i.%i.%i (MIT) 2011 Louis-Philippe Perron <lp@spiralix.org>", PUREDIS_MAJOR, PUREDIS_MINOR, PUREDIS_PATCH);
+    post("Puredis: compiled for pd-%d.%d on %s %s", PD_MAJOR_VERSION, PD_MINOR_VERSION, __DATE__, __TIME__);
 }
