@@ -84,6 +84,9 @@ void prepareOutList(t_puredis *x, redisReply * reply) {
     } else if (reply->type == REDIS_REPLY_INTEGER) {
         SETFLOAT(&x->out[x->out_count],reply->integer);
         x->out_count++;
+    } else if (reply->type == REDIS_REPLY_NIL) {
+        SETSYMBOL(&x->out[x->out_count],gensym("nil"));
+        x->out_count++;
     }
 }
 
@@ -103,6 +106,8 @@ void parseReply(t_puredis *x, redisReply * reply)
         t_atom value;
         SETFLOAT(&value, reply->integer);
         outlet_float(x->x_obj.ob_outlet, atom_getfloat(&value));
+    } else if (reply->type == REDIS_REPLY_NIL) {
+        outlet_symbol(x->x_obj.ob_outlet, gensym("nil"));
     }
     freeReplyObject(reply);
 }
