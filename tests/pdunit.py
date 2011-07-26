@@ -17,6 +17,8 @@ class PdUnit:
     self.start = time()
     self.results = {}
     self.stats = {'success': 0, 'fail': 0}
+    self.before = False
+    self.after = False
     
   def print_stats(self):
     if self.stats['fail'] == 0:
@@ -39,12 +41,18 @@ class PdUnit:
       self.print_color(red, ', '.join( self.results[name]['should'][1]))
       self.stats['fail'] += 1
   
-  def test(self,case,should,test):
-    self.suite.append({'case': case, 'should': should, 'test': test})
+  def test(self,case,should,test,setup=False,teardown=False):
+    self.suite.append({'case': case, 'should': should, 'test': test, 'setup': setup, 'teardown': teardown})
     self.results[case] = {'should': should}
   
+  def setup(self,setup):
+    self.before = setup
+    
+  def teardown(self,teardown):
+    self.after = teardown
+  
   def assertion(self,message):
-    if message[0] == 'idx':
+    if message[0] == 'idx' and message[1] != '-1':
       idx = int(message[1])
       test = message[2:]
       case = self.suite[int(idx)]['case']
@@ -61,8 +69,23 @@ class PdUnit:
     
     self.pd.Pd_unit = Pd_unit
     for unit in self.suite:
+      # sending the setup if there is
+      if self.before:
+        self.pd.Send(['idx', '-1'])
+        self.pd.Send(self.before)
+      if unit['setup']:
+        self.pd.Send(['idx', '-1'])
+        self.pd.Send(unit['setup'])
+      # sending the actual tests
       self.pd.Send(['idx', str(self.suite.index(unit))])
       self.pd.Send(unit['test'])
+      # sending the teardowns
+      if unit['teardown']:
+        self.pd.Send(['idx', '-1'])
+        self.pd.Send(unit['teardown'])
+      if self.after:
+        self.pd.Send(['idx', '-1'])
+        self.pd.Send(self.after)
       
     while self.pd.Alive():
       if len(self.suite) <= (self.stats['success']+self.stats['fail']):
