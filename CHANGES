@@ -1,3 +1,9 @@
+0.4.2 2011-07-27
+  zset zscore free bug solved
+
+0.4.1 2011-07-27
+  csv load status message
+
 0.4 2011-07-27
   csv method loads datasets
 

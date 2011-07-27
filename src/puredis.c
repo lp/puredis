@@ -28,7 +28,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define PUREDIS_MAJOR 0
 #define PUREDIS_MINOR 4
-#define PUREDIS_PATCH 1
+#define PUREDIS_PATCH 2
 #define PD_MAJOR_VERSION 0
 #define PD_MINOR_VERSION 42
 
@@ -72,7 +72,6 @@ typedef struct _puredis {
     int hcount;
     /* zset loader vars */
     int zcount;
-    char ** zvector;
     char * zscore;
 } t_puredis;
 
@@ -462,10 +461,10 @@ static void puredis_cb1 (void *s, size_t i, void *userdata) {
         if (x->lnew) {
             if (x->zcount) {
                 puredis_csvparse(x, 4, s,i);
-                free(x->zscore);
                 x->zcount = 0;
             } else {
                 x->zcount = 1;
+                free(x->zscore);
                 if ((x->zscore = malloc(i+1)) == NULL) {
                     post("puredis: can not proceed!!  Memory Error!"); return;
                 }
@@ -516,6 +515,9 @@ static void puredis_csv_init(t_puredis *x)
     } else if (x->ltype == gensym("set")) {
         cmd = "SADD";
     } else if (x->ltype == gensym("zset")) {
+        if ((x->zscore = malloc(8)) == NULL) {
+            post("puredis: can not proceed!!  Memory Error!"); return;
+        }
         cmd = "ZADD";
     } else if (x->ltype == gensym("hash")) {
         x->hargc = 0;
