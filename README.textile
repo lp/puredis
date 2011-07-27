@@ -76,28 +76,33 @@ p. It is also possible to load datasets from csv files in a puredis object.  The
 p. For csv loading, your files will need to be formatted in a way puredis can understand.  (Lines preceded by # are ignored).
 
 h4. CSV Strings:
+
 bc. # KEY, VALUE
 KEY1, VALUE1
 KEY2, VALUE2
 KEY3, VALUE3
 
 h4. CSV Lists:
+
 bc. # LIST,ITEM1,ITEM2,...
 MYLIST,A,B,C,D,E
 MYLIST2,F,G,H,I,J
 
 h4. CSV Hashes:
+
 bc. PERSON,AGE,CITY
 ANNA,26,Vancouver
 PIETER,32,Dublin
 SERGEI,41,Moscow
 
 h4. CSV Sets:
+
 bc. # SET,ITEM1,ITEM2,...
 MYSET1,A,B,C,D,E
 MYSET2,F,G,H,I,J
 
 h4. CSV Sorted Sets:
+
 bc. # ZSET, SCORE1, VALUE1, SCORE2, VALUE2, ...
 MYZSET1,1,A,2,B,3,C,4,D,5,E
 MYZSET2,1,F,2,G,3,H,4,I,5,J
