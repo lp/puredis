@@ -28,7 +28,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define PUREDIS_MAJOR 0
 #define PUREDIS_MINOR 4
-#define PUREDIS_PATCH 0
+#define PUREDIS_PATCH 1
 #define PD_MAJOR_VERSION 0
 #define PD_MINOR_VERSION 42
 
@@ -59,6 +59,8 @@ typedef struct _puredis {
     
     /* loader vars */
     t_symbol * ltype;
+    int lnumload;
+    int lnumerror;
     char * lcmd;
     char * lkey;
     int lnew;
@@ -372,8 +374,11 @@ static void postCommandCSV(t_puredis * x, int argc, char ** vector, size_t * len
 {
     redisReply * reply = redisCommandArgv(x->redis, argc, (const char**)vector, (const size_t *)lengths);
     freeVectorAndLengths(argc, vector, lengths);
+    x->lnumload++;
     if (reply->type == REDIS_REPLY_ERROR) {
-        outlet_symbol(x->x_obj.ob_outlet, gensym(reply->str));
+        x->lnumerror++;
+        x->lnumload--;
+        post("Puredis csv load Redis error: %s", reply->str);
     }
     freeReplyObject(reply);
 }
@@ -498,7 +503,7 @@ static void puredis_cb2 (int c, void *userdata) {
 
 static void puredis_csv_init(t_puredis *x)
 {
-    x->lcount = 0; x->lnew = 0;
+    x->lcount = 0; x->lnew = 0; x->lnumload = 0; x->lnumerror = 0;
     if ((x->lkey = malloc(8)) == NULL) {
         post("puredis: can not proceed!!  Memory Error!"); return;
     }
@@ -573,6 +578,16 @@ void puredis_csv(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
     csv_fini(&p, puredis_cb1, puredis_cb2, x);
     csv_free(&p);
     puredis_csv_free(x);
+    
+    t_atom stats[7];
+    SETSYMBOL(&stats[0], gensym("csv-load-status"));
+    SETSYMBOL(&stats[1], gensym("lines"));
+    SETFLOAT(&stats[2], x->lcount);
+    SETSYMBOL(&stats[3], gensym("entries"));
+    SETFLOAT(&stats[4], x->lnumload);
+    SETSYMBOL(&stats[5], gensym("error"));
+    SETFLOAT(&stats[6], x->lnumerror);
+    outlet_list(x->x_obj.ob_outlet, &s_list, 7, &stats[0]);
 }
 
 void redis_free(t_puredis *x)
