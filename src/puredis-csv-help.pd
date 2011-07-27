@@ -1,0 +1,26 @@
+#N canvas 350 214 641 253 10;
+#X obj 20 190 puredis;
+#X msg 22 59 csv tests/csv/string.csv string;
+#X msg 45 81 csv tests/csv/list.csv list;
+#X msg 68 140 csv tests/csv/set.csv set;
+#X msg 56 102 csv tests/csv/hash.csv hash;
+#X msg 77 163 csv tests/csv/zset.csv zset;
+#X obj 20 220 print csv;
+#X text 19 8 The csv method loads datasets into Redis from csv files:
+;
+#X text 19 30 Method signature: csv filepath datatype;
+#X text 269 58 -> KEY \, VALUE on separate lines;
+#X text 269 78 -> LISTKEY \, ITEM1 \, ITEM2 \, ITEM3 on separate lines
+;
+#X text 270 137 -> SETKEY \, MEMBER1 \, MEMBER2 \, MEMBER3 on separate
+lines;
+#X text 270 97 -> HASHKEY \, VALUE1 \, VALUE2 \, VALUE3 on separate
+lines \, with the Header line containing the hash keys;
+#X text 271 162 -> SETKEY \, SCORE1 \, MEMBER1 \, SCORE2 \, MEMBER2
+on separate lines;
+#X connect 0 0 6 0;
+#X connect 1 0 0 0;
+#X connect 2 0 0 0;
+#X connect 3 0 0 0;
+#X connect 4 0 0 0;
+#X connect 5 0 0 0;
