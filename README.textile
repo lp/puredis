@@ -69,7 +69,7 @@ publisher: 0
 
 h2. Loading datasets from .csv files
 
-p. It is also possible to load datasets from csv files in a puredis object.  The puredis object won't output anything while loading except for Redis error messages.
+p. It is also possible to load datasets from csv files in a puredis object.  The puredis object won't output anything while loading except for Redis error messages to the pd console.  A status message is sent when loading completes.
 
 !https://github.com/lp/puredis/raw/master/img/puredis-csv-help.png!
 
