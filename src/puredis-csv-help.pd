@@ -1,7 +1,5 @@
-#N canvas 350 214 641 253 10;
+#N canvas 499 109 641 253 10;
 #X obj 20 190 puredis;
-#X msg 22 59 csv tests/csv/string.csv string;
-#X msg 45 81 csv tests/csv/list.csv list;
 #X msg 68 140 csv tests/csv/set.csv set;
 #X msg 56 102 csv tests/csv/hash.csv hash;
 #X msg 77 163 csv tests/csv/zset.csv zset;
@@ -18,9 +16,13 @@ lines;
 lines \, with the Header line containing the hash keys;
 #X text 271 162 -> SETKEY \, SCORE1 \, MEMBER1 \, SCORE2 \, MEMBER2
 on separate lines;
-#X connect 0 0 6 0;
+#X msg 45 79 csv tests/csv/list.csv list;
+#X msg 22 58 csv tests/csv/string.csv string;
+#X text 255 219 -> Outputs: list csv-load-status lines 4 entries 3
+error 0;
+#X connect 0 0 4 0;
 #X connect 1 0 0 0;
 #X connect 2 0 0 0;
 #X connect 3 0 0 0;
-#X connect 4 0 0 0;
-#X connect 5 0 0 0;
+#X connect 12 0 0 0;
+#X connect 13 0 0 0;
