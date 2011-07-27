@@ -35,6 +35,14 @@ LIBS_macosx =
 CFLAGS_mingw = -shared -DMSW
 LIBS_mingw = pd.dll
 
+# libcsv
+
+LIBCSVD = libcsv-3.0.1
+LIBCSVI = -I$(LIBCSVD)
+LIBCSVL = $(LIBCSVD)/libcsv.a
+LIBCSVTGZ = libcsv-3.0.1.tar.gz
+LIBCSVURL = http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.1/libcsv-3.0.1.tar.gz
+
 # Hiredis setup
 HIREDIS = hiredis
 HIREDISD = antirez-hiredis-3cc6a7f
@@ -43,7 +51,7 @@ HIREDISURL = https://github.com/antirez/hiredis/tarball/v0.10.1
 HIREDISI = -I$(HIREDISD)
 HIREDISL = $(HIREDISD)/libhiredis.a
 
-CFLAGS = -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace $(ARCH) $(HIREDISI) $(PDINCLUDE)
+CFLAGS = -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
 
 # build
 default: $(puredis_$(PLATFORM))
@@ -57,8 +65,8 @@ install:
 	echo "TODO"
 
 # compile
-$(puredis_$(PLATFORM)): $(puredis_src) $(HIREDISD)/build.stamp
-	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL) -o $(puredis_$(PLATFORM)) $(puredis_src)
+$(puredis_$(PLATFORM)): $(puredis_src) $(HIREDISD)/build.stamp $(LIBCSVD)/build.stamp
+	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL) $(LIBCSVL) -o $(puredis_$(PLATFORM)) $(puredis_src)
 
 # get hiredis: download, unpack, compile, install locally
 $(HIREDISD)/build.stamp: $(HIREDISD)/unpack.stamp
@@ -71,3 +79,16 @@ $(HIREDISD)/unpack.stamp: $(HIREDISTGZ)
 
 $(HIREDISTGZ):
 	wget $(HIREDISURL)
+
+$(LIBCSVD)/build.stamp: $(LIBCSVD)/unpack.stamp
+	$(CC) -fPIC $(ARCH) $(LIBCSVD)/libcsv.c -c -o $(LIBCSVD)/libcsv.o
+	$(AR) -rc $(LIBCSVD)/libcsv.a $(LIBCSVD)/libcsv.o
+	$(AR) -s $(LIBCSVD)/libcsv.a
+	touch $(LIBCSVD)/build.stamp
+
+$(LIBCSVD)/unpack.stamp: $(LIBCSVTGZ)
+	tar xzf $(LIBCSVTGZ)
+	touch $(LIBCSVD)/unpack.stamp
+
+$(LIBCSVTGZ):
+	wget $(LIBCSVURL)
