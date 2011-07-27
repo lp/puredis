@@ -22,12 +22,13 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <async.h>
 #include <stdlib.h>
 #include <string.h>
+#include <csv.h>
 
 /* gcc -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace -arch i386 -I/Applications/Pd-extended.app/Contents/Resources/include -I./hiredis/includes ./hiredis/libhiredis.a -o puredis.pd_darwin puredis.c */
 
 #define PUREDIS_MAJOR 0
-#define PUREDIS_MINOR 3
-#define PUREDIS_PATCH 4
+#define PUREDIS_MINOR 4
+#define PUREDIS_PATCH 0
 #define PD_MAJOR_VERSION 0
 #define PD_MINOR_VERSION 42
 
@@ -56,6 +57,21 @@ typedef struct _puredis {
     int sub_run;
     t_clock  *sub_clock;
     
+    /* loader vars */
+    t_symbol * ltype;
+    char * lcmd;
+    char * lkey;
+    int lnew;
+    int lcount;
+    /* hash loader vars */
+    int hargc;
+    char ** hheaders;
+    int hbufsize;
+    int hcount;
+    /* zset loader vars */
+    int zcount;
+    char ** zvector;
+    char * zscore;
 } t_puredis;
 
 static void freeVectorAndLengths(int argc, char ** vector, size_t * lengths)
@@ -352,6 +368,213 @@ void apuredis_bang(t_puredis *x) {
     apuredis_yield(x);
 }
 
+static void postCommandCSV(t_puredis * x, int argc, char ** vector, size_t * lengths)
+{
+    redisReply * reply = redisCommandArgv(x->redis, argc, (const char**)vector, (const size_t *)lengths);
+    freeVectorAndLengths(argc, vector, lengths);
+    if (reply->type == REDIS_REPLY_ERROR) {
+        outlet_symbol(x->x_obj.ob_outlet, gensym(reply->str));
+    }
+    freeReplyObject(reply);
+}
+
+static void puredis_csvparse(t_puredis *x, int argc, void *s, size_t i) {
+    char ** vector = NULL;
+    size_t * lengths = NULL;
+    char * item = (char*)s;
+    
+    if (((vector = malloc(argc*sizeof(char*))) == NULL) || ((lengths = malloc(argc*sizeof(size_t))) == NULL)) {
+        post("puredis: can not proceed!!  Memory Error!"); return;
+    }
+    
+    if ((vector[0] = malloc(strlen(x->lcmd)+1)) == NULL) {
+        post("puredis: can not proceed!!  Memory Error!"); return;
+    }
+    strcpy(vector[0], x->lcmd);
+    lengths[0] = strlen(vector[0]);
+    
+    if ((vector[1] = malloc(strlen(x->lkey)+1)) == NULL) {
+        post("puredis: can not proceed!!  Memory Error!"); return;
+    }
+    strcpy(vector[1], x->lkey);
+    lengths[1] = strlen(vector[1]);
+    
+    if (x->ltype == gensym("hash")) {
+        if ((vector[2] = malloc(strlen(x->hheaders[x->hcount])+1)) == NULL) {
+            post("puredis: can not proceed!!  Memory Error!"); return;
+        }
+        strcpy(vector[2], x->hheaders[x->hcount]);
+        lengths[2] = strlen(vector[2]);
+    } else if (x->ltype == gensym("zset")) {
+        if ((vector[2] = malloc(strlen(x->zscore)+1)) == NULL) {
+            post("puredis: can not proceed!!  Memory Error!"); return;
+        }
+        strcpy(vector[2], x->zscore);
+        lengths[2] = strlen(vector[2]);
+    }
+    
+    if ((vector[argc-1] = malloc(i+1)) == NULL) {
+        post("puredis: can not proceed!!  Memory Error!"); return;
+    }
+    strcpy(vector[argc-1], item);
+    lengths[argc-1] = i;
+    
+    postCommandCSV(x, argc, vector, lengths);
+}
+
+static void puredis_cb1 (void *s, size_t i, void *userdata) {
+    t_puredis *x = (t_puredis *)userdata;
+    
+    if (x->lnew && x->lkey[0] == '#') return;
+    
+    if (x->ltype == gensym("hash")) {
+        if (x->lcount > 0) {
+            if (x->lnew) {
+                x->hcount++;
+                puredis_csvparse(x, 4, s,i);
+            } else {
+                x->lnew = 1;
+                x->hcount = 0;
+                free(x->lkey);
+                if ((x->lkey = malloc(i+1)) == NULL) {
+                    post("puredis: can not proceed!!  Memory Error!"); return;
+                }
+                strcpy(x->lkey, (char*)s);
+            }
+        } else {
+            if ((x->hheaders[x->hcount] = malloc(i+1)) == NULL) {
+                post("puredis: can not proceed!!  Memory Error!"); return;
+            }
+            strcpy(x->hheaders[x->hcount], (char*)s);
+            x->hcount++;
+            x->hargc++;
+            if (x->hbufsize == x->hargc) {
+                x->hbufsize += x->hbufsize / 2;
+                x->hheaders = realloc(x->hheaders, x->hbufsize * sizeof(char*));
+            }
+        }
+    } else if (x->ltype == gensym("zset")) {
+        if (x->lnew) {
+            if (x->zcount) {
+                puredis_csvparse(x, 4, s,i);
+                free(x->zscore);
+                x->zcount = 0;
+            } else {
+                x->zcount = 1;
+                if ((x->zscore = malloc(i+1)) == NULL) {
+                    post("puredis: can not proceed!!  Memory Error!"); return;
+                }
+                strcpy(x->zscore, (char*)s);
+            }
+        } else {
+            x->lnew = 1;
+            x->zcount = 0;
+            free(x->lkey);
+            if ((x->lkey = malloc(i+1)) == NULL) {
+                post("puredis: can not proceed!!  Memory Error!"); return;
+            }
+            strcpy(x->lkey, (char*)s);
+        }
+    } else {
+        if (x->lnew) {
+            puredis_csvparse(x, 3, s,i);
+        } else {
+            x->lnew = 1;
+            
+            free(x->lkey);
+            if ((x->lkey = malloc(i+1)) == NULL) {
+                post("puredis: can not proceed!!  Memory Error!"); return;
+            }
+            strcpy(x->lkey, (char*)s);
+        }
+    }
+}
+
+static void puredis_cb2 (int c, void *userdata) {
+    t_puredis *x = (t_puredis *)userdata;
+    x->lnew = 0;
+    x->lcount++;
+}
+
+static void puredis_csv_init(t_puredis *x)
+{
+    x->lcount = 0; x->lnew = 0;
+    if ((x->lkey = malloc(8)) == NULL) {
+        post("puredis: can not proceed!!  Memory Error!"); return;
+    }
+    
+    char * cmd = NULL;
+    if (x->ltype == gensym("string")) {
+        cmd = "SET";
+    } else if (x->ltype == gensym("list")) {
+        cmd = "RPUSH";
+    } else if (x->ltype == gensym("set")) {
+        cmd = "SADD";
+    } else if (x->ltype == gensym("zset")) {
+        cmd = "ZADD";
+    } else if (x->ltype == gensym("hash")) {
+        x->hargc = 0;
+        x->hcount = 0;
+        x->hbufsize = 2;
+        x->hheaders = NULL;
+        if ((x->hheaders = calloc(x->hbufsize, sizeof(char*))) == NULL) {
+            post("puredis: can not proceed!!  Memory Error!"); return;
+        }
+        cmd = "HSET";
+    }
+    
+    if ((x->lcmd = malloc(strlen(cmd)+1)) == NULL) {
+        post("puredis: can not proceed!!  Memory Error!"); return;
+    }
+    strcpy(x->lcmd, cmd);
+}
+
+static void puredis_csv_free(t_puredis *x)
+{
+    free(x->lkey);
+    free(x->lcmd);
+    if (x->ltype == gensym("hash")) {
+        int i;
+        for (i = 0; i < x->hargc; i++) free(x->hheaders[i]);
+        free(x->hheaders);
+    } else if (x->ltype == gensym("zset")) {
+        free(x->zscore);
+    }
+}
+
+void puredis_csv(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
+{
+    char buf[1024]; size_t i; char filename[256];
+    atom_string(argv, filename, 256);
+    x->ltype = atom_getsymbol(argv+1);
+    
+    struct csv_parser p;
+    FILE *csvfile = NULL;
+    csv_init(&p, 0);
+    csv_set_opts(&p, CSV_APPEND_NULL);
+    puredis_csv_init(x);
+    
+    csvfile = fopen((const char*)filename, "rb");
+    if (csvfile == NULL) {
+        post("Puredis failed to open csv file: %s", csvfile);
+        puredis_csv_free(x);
+        return;
+    }
+    
+    while ((i=fread(buf, 1, 1024, csvfile)) > 0) {
+        if (csv_parse(&p, buf, i, puredis_cb1, puredis_cb2, x) != i) {
+            post("Puredis error parsing csv file: %s", csv_strerror(csv_error(&p)));
+            fclose(csvfile);
+            puredis_csv_free(x);
+            return;
+        }
+    }
+    
+    csv_fini(&p, puredis_cb1, puredis_cb2, x);
+    csv_free(&p);
+    puredis_csv_free(x);
+}
+
 void redis_free(t_puredis *x)
 {
     redisFree(x->redis);
@@ -368,6 +591,9 @@ static void setup_puredis(void)
     
     class_addmethod(puredis_class,
         (t_method)redis_command, gensym("command"),
+        A_GIMME, 0);
+    class_addmethod(puredis_class,
+        (t_method)puredis_csv, gensym("csv"),
         A_GIMME, 0);
     class_sethelpsymbol(puredis_class, gensym("puredis-help"));
 }
@@ -410,6 +636,7 @@ static void setup_spuredis(void)
         A_GIMME, 0);
     class_sethelpsymbol(spuredis_class, gensym("spuredis-help"));
 }
+
 
 void puredis_setup(void) {
     setup_puredis();
