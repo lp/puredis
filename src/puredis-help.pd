@@ -67,6 +67,8 @@
 #X msg 416 569 command ZRANGEBYSCORE MYZSET 10 200 WITHSCORES;
 #X obj 416 616 print ZRANGEBYSCORE;
 #X msg 159 401 command SINTER MYSET MYALTSET;
+#X text 292 10 or loading datasets from csv:;
+#X obj 485 11 puredis-csv-help;
 #X connect 4 0 6 0;
 #X connect 5 0 4 0;
 #X connect 7 0 10 0;
