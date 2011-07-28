@@ -54,6 +54,12 @@ pu.test(
   case='csv string',
   test=['puredis', 'csv', "%s/csv/string.csv" % os.getcwd(), 'string'],
   should=['equal', ['csv-load-status', 'lines', '4', 'entries', '3', 'error', '0']])
+  
+pu.test(
+  case='verify csv string',
+  setup=['puredis', 'csv', "%s/csv/string.csv" % os.getcwd(), 'string'],
+  test=['puredis', 'command', 'GET', 'KEY2'],
+  should=['equal', ['VALUE2']])
 
 pu.test(
   case='csv list',
@@ -61,9 +67,21 @@ pu.test(
   should=['equal', ['csv-load-status', 'lines', '3', 'entries', '10', 'error', '0']])
   
 pu.test(
+  case='verify csv list',
+  setup=['puredis', 'csv', "%s/csv/list.csv" % os.getcwd(), 'list'],
+  test=['puredis', 'command', 'LLEN', 'MYLIST'],
+  should=['equal', ['5']])
+  
+pu.test(
   case='csv hash',
   test=['puredis', 'csv', "%s/csv/hash.csv" % os.getcwd(), 'hash'],
   should=['equal', ['csv-load-status', 'lines', '4', 'entries', '6', 'error', '0']])
+  
+pu.test(
+  case='verify csv hash',
+  setup=['puredis', 'csv', "%s/csv/hash.csv" % os.getcwd(), 'hash'],
+  test=['puredis', 'command', 'HGETALL', 'ANNA'],
+  should=['equal', ['AGE', '26', 'CITY', 'Vancouver']])
   
 pu.test(
   case='csv set',
@@ -71,9 +89,21 @@ pu.test(
   should=['equal', ['csv-load-status', 'lines', '3', 'entries', '10', 'error', '0']])
   
 pu.test(
+  case='verify csv set',
+  setup=['puredis', 'csv', "%s/csv/set.csv" % os.getcwd(), 'set'],
+  test=['puredis', 'command', 'SISMEMBER', 'MYSET1', 'C'],
+  should=['equal', ['1']])
+  
+pu.test(
   case='csv zset',
   test=['puredis', 'csv', "%s/csv/zset.csv" % os.getcwd(), 'zset'],
   should=['equal', ['csv-load-status', 'lines', '3', 'entries', '10', 'error', '0']])
+  
+pu.test(
+  case='verify csv zset',
+  setup=['puredis', 'csv', "%s/csv/zset.csv" % os.getcwd(), 'zset'],
+  test=['puredis', 'command', 'ZSCORE', 'MYZSET1', 'C'],
+  should=['equal', ['3']])
 
 pu.run()
 
