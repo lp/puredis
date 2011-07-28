@@ -2,19 +2,21 @@
 # User configuration goes here
 
 # Uncomment the particular line according to your platform
-#PLATFORM = linux
-PLATFORM = macosx
+PLATFORM = linux
+#PLATFORM = macosx
 #PLATFORM = mingw
 
 # If Pd is in an unusual place, put -I/path/to m_pd.h here:
-PDINCLUDE = -I/Applications/Pd-extended.app/Contents/Resources/include
+#PDINCLUDE = -I/Applications/Pd-extended.app/Contents/Resources/include
 #PDINCLUDE = -I./
 #PDINCLUDE = -I$(HOME)/include
 #PDINCLUDE = -I/opt/puredata/include
 #PDINCLUDE = -I/Applications/Pd-0.41-4.app/Contents/Resources/src
 
 # build architecture: comment 2 lines to build in default 64bit on 64 bit platforms
-ARCH = -arch i386
+#ARCH = -arch i386
+#ARCH = --target=i386
+ARCH = 
 HIREDISARCH = 32bit
 
 # End of user configuration
@@ -46,12 +48,13 @@ LIBCSVURL = http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.1/
 # Hiredis setup
 HIREDIS = hiredis
 HIREDISD = antirez-hiredis-3cc6a7f
-HIREDISTGZ = antirez-hiredis-v0.10.1-0-g3cc6a7f.tar.gz
+HIREDISTGZ = v0.10.1
 HIREDISURL = https://github.com/antirez/hiredis/tarball/v0.10.1
 HIREDISI = -I$(HIREDISD)
 HIREDISL = $(HIREDISD)/libhiredis.a
 
-CFLAGS = -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
+#CFLAGS = -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
+CFLAGS = -ansi -Wall -O2 -fPIC $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
 
 # build
 default: $(puredis_$(PLATFORM))
