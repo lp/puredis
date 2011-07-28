@@ -12,6 +12,7 @@ PLATFORM = linux
 #PDINCLUDE = -I$(HOME)/include
 #PDINCLUDE = -I/opt/puredata/include
 #PDINCLUDE = -I/Applications/Pd-0.41-4.app/Contents/Resources/src
+PDINCLUDE = -I$(HOME)/dev/diverse/Pd-0.42.5-extended/pd/src
 
 # build architecture: comment 2 lines to build in default 64bit on 64 bit platforms
 #ARCH = -arch i386
@@ -41,7 +42,9 @@ LIBS_mingw = pd.dll
 
 LIBCSVD = libcsv-3.0.1
 LIBCSVI = -I$(LIBCSVD)
-LIBCSVL = $(LIBCSVD)/libcsv.a
+LIBCSVL_macosx = $(LIBCSVD)/libcsv.a
+LIBCSVL_linux = $(LIBCSVD)/libcsv.o
+LIBCSVL_mingw = 
 LIBCSVTGZ = libcsv-3.0.1.tar.gz
 LIBCSVURL = http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.1/libcsv-3.0.1.tar.gz
 
@@ -51,7 +54,9 @@ HIREDISD = antirez-hiredis-3cc6a7f
 HIREDISTGZ = v0.10.1
 HIREDISURL = https://github.com/antirez/hiredis/tarball/v0.10.1
 HIREDISI = -I$(HIREDISD)
-HIREDISL = $(HIREDISD)/libhiredis.a
+HIREDISL_macosx = $(HIREDISD)/libhiredis.a
+HIREDISL_linux = $(HIREDISD)/libhiredis.so
+HIREDISL_mingw = 
 
 #CFLAGS = -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
 CFLAGS = -ansi -Wall -O2 -fPIC $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
@@ -69,7 +74,7 @@ install:
 
 # compile
 $(puredis_$(PLATFORM)): $(puredis_src) $(HIREDISD)/build.stamp $(LIBCSVD)/build.stamp
-	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL) $(LIBCSVL) -o $(puredis_$(PLATFORM)) $(puredis_src)
+	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL_$(PLATFORM)) $(LIBCSVL_$PLATFORM()) -o $(puredis_$(PLATFORM)) $(puredis_src)
 
 # get hiredis: download, unpack, compile, install locally
 $(HIREDISD)/build.stamp: $(HIREDISD)/unpack.stamp
