@@ -27,8 +27,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /* gcc -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace -arch i386 -I/Applications/Pd-extended.app/Contents/Resources/include -I./hiredis/includes ./hiredis/libhiredis.a -o puredis.pd_darwin puredis.c */
 
 #define PUREDIS_MAJOR 0
-#define PUREDIS_MINOR 4
-#define PUREDIS_PATCH 2
+#define PUREDIS_MINOR 5
+#define PUREDIS_PATCH 0
 #define PD_MAJOR_VERSION 0
 #define PD_MINOR_VERSION 42
 
@@ -49,13 +49,10 @@ typedef struct _puredis {
     
     /* async vars */
     int async;
-    int qcount;
     t_outlet *q_out;
-    
-    /* sub vars */
-    int sub_num;
-    int sub_run;
-    t_clock  *sub_clock;
+    int async_num;
+    int async_run;
+    t_clock  *async_clock;
     
     /* loader vars */
     t_symbol * ltype;
@@ -102,9 +99,13 @@ void puredis_csv(t_puredis *x, t_symbol *s, int argc, t_atom *argv);
 
 /* async redis */
 static void setup_apuredis(void);
+static void apuredis_yield(t_puredis * x);
 static void apuredis_q_out(t_puredis * x);
-void apuredis_yield(t_puredis * x);
+static void apuredis_run(t_puredis *x);
+static void apuredis_schedule(t_puredis *x);
 void apuredis_bang(t_puredis *x);
+void apuredis_start(t_puredis *x, t_symbol *s);
+void apuredis_stop(t_puredis *x, t_symbol *s);
 
 /* subscriber redis */
 static void setup_spuredis(void);
@@ -167,12 +168,13 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
     if (s == gensym("apuredis")) {
         x = (t_puredis*)pd_new(apuredis_class);
         x->redis = redisConnectNonBlock((char*)host,port);
-        x->async = 1; x->qcount = 0;
+        x->async = 1; x->async_num = 0; x->async_run = 0;
+        x->async_clock = clock_new(x, (t_method)apuredis_run);
     } else if (s == gensym("spuredis")) {
         x = (t_puredis*)pd_new(spuredis_class);
         x->redis = redisConnectNonBlock((char*)host,port);
-        x->sub_clock = clock_new(x, (t_method)spuredis_run);
-        x->sub_num = 0; x->sub_run = 0;
+        x->async_clock = clock_new(x, (t_method)spuredis_run);
+        x->async_num = 0; x->async_run = 0;
     } else {
         x = (t_puredis*)pd_new(puredis_class);
         x->redis = redisConnect((char*)host,port);
@@ -221,8 +223,9 @@ void redis_command(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
     }
     if (x->async) {
         redis_postCommandAsync(x, argc, vector, lengths);
-        x->qcount++;
+        x->async_num++;
         apuredis_q_out(x);
+        apuredis_schedule(x);
     } else {
         puredis_postCommandSync(x, argc, vector, lengths);
     }
@@ -545,21 +548,18 @@ static void setup_apuredis(void)
     
     class_addbang(apuredis_class,apuredis_bang);
     class_addmethod(apuredis_class,
+        (t_method)apuredis_stop, gensym("stop"),0);
+    class_addmethod(apuredis_class,
+        (t_method)apuredis_start, gensym("start"),0);
+    class_addmethod(apuredis_class,
         (t_method)redis_command, gensym("command"),
         A_GIMME, 0);
     class_sethelpsymbol(apuredis_class, gensym("apuredis-help"));
 }
 
-static void apuredis_q_out(t_puredis * x)
+static void apuredis_yield(t_puredis * x)
 {
-    t_atom value;
-    SETFLOAT(&value, x->qcount);
-    outlet_float(x->q_out, atom_getfloat(&value));
-}
-
-void apuredis_yield(t_puredis * x)
-{
-    if (x->qcount > 0) {
+    if (x->async_num > 0) {
         void * tmpreply = NULL;
         if ( redisGetReply(x->redis, &tmpreply) == REDIS_ERR) return;
         if (tmpreply == NULL) {
@@ -572,12 +572,12 @@ void apuredis_yield(t_puredis * x)
                 return;
             
             if (tmpreply != NULL) {
-                x->qcount--;
+                x->async_num--;
                 redisReply * reply = (redisReply*)tmpreply;
                 redis_parseReply(x, reply);
             }
         } else {
-            x->qcount--;
+            x->async_num--;
             redisReply * reply = (redisReply*)tmpreply;
             redis_parseReply(x, reply);
         }
@@ -585,9 +585,43 @@ void apuredis_yield(t_puredis * x)
     apuredis_q_out(x);
 }
 
+static void apuredis_q_out(t_puredis * x)
+{
+    t_atom value;
+    SETFLOAT(&value, x->async_num);
+    outlet_float(x->q_out, atom_getfloat(&value));
+}
+
+static void apuredis_run(t_puredis *x)
+{
+    apuredis_yield(x);
+    apuredis_schedule(x);
+}
+
+static void apuredis_schedule(t_puredis *x)
+{
+    if ((!x->async_run) || x->async_num < 1) {
+        clock_unset(x->async_clock);
+    } else if (x->async_run && x->async_num > 0) {
+        clock_delay(x->async_clock, 0);
+    }
+}
+
 void apuredis_bang(t_puredis *x)
 {
     apuredis_yield(x);
+}
+
+void apuredis_start(t_puredis *x, t_symbol *s)
+{
+    x->async_run = 1;
+    apuredis_schedule(x);
+}
+
+void apuredis_stop(t_puredis *x, t_symbol *s)
+{
+    x->async_run = 0;
+    apuredis_schedule(x);
 }
 
 static void setup_spuredis(void)
@@ -615,7 +649,7 @@ static void setup_spuredis(void)
 
 static void spuredis_run(t_puredis *x)
 {
-    if (x->sub_run) {
+    if (x->async_run) {
         void * tmpreply = NULL;
         if ( redisGetReply(x->redis, &tmpreply) == REDIS_ERR) return;
         if (tmpreply == NULL) {
@@ -636,27 +670,27 @@ static void spuredis_run(t_puredis *x)
             redis_parseReply(x, reply);
         }
         
-        clock_delay(x->sub_clock, 100);
+        clock_delay(x->async_clock, 100);
     }
 }
 
 static void spuredis_schedule(t_puredis *x)
 {
-    if (x->sub_run && x->sub_num < 1) {
-        x->sub_run = 0;
-        clock_unset(x->sub_clock);
-    } else if ((!x->sub_run) && x->sub_num > 0) {
-        x->sub_run = 1;
-        clock_delay(x->sub_clock, 0);
+    if (x->async_run && x->async_num < 1) {
+        x->async_run = 0;
+        clock_unset(x->async_clock);
+    } else if ((!x->async_run) && x->async_num > 0) {
+        x->async_run = 1;
+        clock_delay(x->async_clock, 0);
     }
 }
 
 static void spuredis_manage(t_puredis *x, t_symbol *s, int argc)
 {
     if (s == gensym("subscribe")) {
-        x->sub_num = x->sub_num + argc;
+        x->async_num = x->async_num + argc;
     } else {
-        x->sub_num = x->sub_num - argc;
+        x->async_num = x->async_num - argc;
     }
     
     spuredis_schedule(x);
@@ -674,7 +708,7 @@ void spuredis_start(t_puredis *x, t_symbol *s)
 
 void spuredis_stop(t_puredis *x, t_symbol *s)
 {
-    x->sub_run = 0;
+    x->async_run = 0;
 }
 
 void spuredis_subscribe(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
