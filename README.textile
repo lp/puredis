@@ -8,6 +8,7 @@ bc. wget https://github.com/lp/puredis/tarball/master
 PUREDIS_SRC=`find . -name lp-puredis-* -print`
 tar xzf $PUREDIS_SRC
 cd ${PUREDIS_SRC:0:20}
+# *** edit the Makefile top portion with proper system settings ***
 make
 
 h2. Usage:
