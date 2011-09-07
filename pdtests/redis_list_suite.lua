@@ -1,0 +1,15 @@
+local list_suite = pdtest.suite("redis list suite")
+list_suite.setup(function()
+  pdtest.raw.list({"command","flushdb"})
+end)
+list_suite.teardown(function()
+  pdtest.raw.list({"command","flushdb"})
+end)
+
+list_suite.case("LRANGE"
+  ).test(function()
+    pdtest.raw.list({"command","RPUSH","MYLIST","MYVALUE1"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","MYVALUE2"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","MYVALUE3"})
+    pdtest.out.list({"command","LRANGE","MYLIST","0","-1"})
+  end).should:equal({"MYVALUE1","MYVALUE2","MYVALUE3"})
