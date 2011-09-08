@@ -43,6 +43,20 @@ suite.case("EXPIRE"
   ).test({"command","EXPIRE","KEY1","10"}
     ).should:equal(1)
 
+suite.case("EXPIREAT"
+  ).test({"command","EXPIREAT","KEY1","4320000"}
+    ).should:equal(1)
+
+suite.case("PERSIST already"
+  ).test({"command","PERSIST","KEY1"}
+    ).should:equal(0)
+
+suite.case("PERSIST"
+  ).test(function()
+    pdtest.raw.list({"command","EXPIRE","KEY1","10"})
+    pdtest.out.list({"command","PERSIST","KEY1"})
+  end).should:equal(1)
+
 suite.case("TTL expired"
   ).test(function()
     pdtest.raw.list({"command","EXPIRE","KEY1","10"})
@@ -70,3 +84,23 @@ suite.case("RENAMENX succeed!"
     pdtest.raw.list({"command","RENAMENX","KEY1","KEY10"})
     pdtest.out.list({"command","GET","KEY10"})
   end).should:equal("VALUE1")
+
+suite.case("SORT DESC"
+  ).test(function()
+    pdtest.raw.list({"command","RPUSH","MYLIST","0"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","2"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","3"})
+    pdtest.out.list({"command","SORT","MYLIST","DESC"})
+  end).should:equal({"3","2","1","1","0"})
+
+suite.case("SORT LIMIT"
+  ).test(function()
+    pdtest.raw.list({"command","RPUSH","MYLIST","0"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","2"})
+    pdtest.raw.list({"command","RPUSH","MYLIST","3"})
+    pdtest.out.list({"command","SORT","MYLIST","LIMIT","2","2"})
+  end).should:equal({"1","2"})
