@@ -1,9 +1,9 @@
-local server_suite = pdtest.suite("redis server commands")
+local server_suite = Suite("redis server commands")
 server_suite.setup(function()
-  pdtest.raw.list({"command","flushdb"})
+  _.outlet.list({"command","flushdb"})
 end)
 server_suite.teardown(function()
-  pdtest.raw.list({"command","flushdb"})
+  _.outlet.list({"command","flushdb"})
 end)
 
 server_suite.case("PING"
@@ -22,14 +22,14 @@ server_suite.case("DBSIZE"
   ).test({"command","DBSIZE"}
     ).should:equal(0
   ).test(function()
-    pdtest.raw.list({"command","SET","FOO","BAR"})
-    pdtest.out.list({"command","DBSIZE"})
+    _.outlet.list({"command","SET","FOO","BAR"})
+    Test.list({"command","DBSIZE"})
   end).should:equal(1)
   
 server_suite.case("DEBUG OBJECT"
   ).test(function()
-    pdtest.raw.list({"command","SET","FOO","BAR"})
-    pdtest.out.list({"command","DEBUG","OBJECT","FOO"})
+    _.outlet.list({"command","SET","FOO","BAR"})
+    Test.list({"command","DEBUG","OBJECT","FOO"})
   end).should:match("^Value at")
   
 server_suite.case("LASTSAVE"

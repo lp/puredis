@@ -1,12 +1,12 @@
-local suite = pdtest.suite("redis keys")
+local suite = Suite("redis keys")
 suite.setup(function()
-  pdtest.raw.list({"command","flushdb"})
-  pdtest.raw.list({"command","SET","KEY1","VALUE1"})
-  pdtest.raw.list({"command","SET","KEY2","VALUE2"})
-  pdtest.raw.list({"command","SET","KEY3","VALUE3"})
+  _.outlet.list({"command","flushdb"})
+  _.outlet.list({"command","SET","KEY1","VALUE1"})
+  _.outlet.list({"command","SET","KEY2","VALUE2"})
+  _.outlet.list({"command","SET","KEY3","VALUE3"})
 end)
 suite.teardown(function()
-  pdtest.raw.list({"command","flushdb"})
+  _.outlet.list({"command","flushdb"})
 end)
 
 suite.case("DEL"
@@ -31,8 +31,8 @@ suite.case("EXISTS"
 
 suite.case("RENAME"
   ).test(function()
-    pdtest.raw.list({"command","RENAME","KEY1","KEY10"})
-    pdtest.out.list({"command","GET","KEY10"})
+    _.outlet.list({"command","RENAME","KEY1","KEY10"})
+    Test.list({"command","GET","KEY10"})
   end).should:equal("VALUE1")
   
 suite.case("TYPE"
@@ -53,14 +53,14 @@ suite.case("PERSIST already"
 
 suite.case("PERSIST"
   ).test(function()
-    pdtest.raw.list({"command","EXPIRE","KEY1","10"})
-    pdtest.out.list({"command","PERSIST","KEY1"})
+    _.outlet.list({"command","EXPIRE","KEY1","10"})
+    Test.list({"command","PERSIST","KEY1"})
   end).should:equal(1)
 
 suite.case("TTL expired"
   ).test(function()
-    pdtest.raw.list({"command","EXPIRE","KEY1","10"})
-    pdtest.out.list({"command","TTL","KEY1"})
+    _.outlet.list({"command","EXPIRE","KEY1","10"})
+    Test.list({"command","TTL","KEY1"})
   end).should:equal(10)
 
 suite.case("OBJECT REFCOUNT"
@@ -81,26 +81,26 @@ suite.case("RENAMENX fail!"
 
 suite.case("RENAMENX succeed!"
   ).test(function()
-    pdtest.raw.list({"command","RENAMENX","KEY1","KEY10"})
-    pdtest.out.list({"command","GET","KEY10"})
+    _.outlet.list({"command","RENAMENX","KEY1","KEY10"})
+    Test.list({"command","GET","KEY10"})
   end).should:equal("VALUE1")
 
 suite.case("SORT DESC"
   ).test(function()
-    pdtest.raw.list({"command","RPUSH","MYLIST","0"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","2"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","3"})
-    pdtest.out.list({"command","SORT","MYLIST","DESC"})
+    _.outlet.list({"command","RPUSH","MYLIST","0"})
+    _.outlet.list({"command","RPUSH","MYLIST","1"})
+    _.outlet.list({"command","RPUSH","MYLIST","1"})
+    _.outlet.list({"command","RPUSH","MYLIST","2"})
+    _.outlet.list({"command","RPUSH","MYLIST","3"})
+    Test.list({"command","SORT","MYLIST","DESC"})
   end).should:equal({"3","2","1","1","0"})
 
 suite.case("SORT LIMIT"
   ).test(function()
-    pdtest.raw.list({"command","RPUSH","MYLIST","0"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","1"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","2"})
-    pdtest.raw.list({"command","RPUSH","MYLIST","3"})
-    pdtest.out.list({"command","SORT","MYLIST","LIMIT","2","2"})
+    _.outlet.list({"command","RPUSH","MYLIST","0"})
+    _.outlet.list({"command","RPUSH","MYLIST","1"})
+    _.outlet.list({"command","RPUSH","MYLIST","1"})
+    _.outlet.list({"command","RPUSH","MYLIST","2"})
+    _.outlet.list({"command","RPUSH","MYLIST","3"})
+    Test.list({"command","SORT","MYLIST","LIMIT","2","2"})
   end).should:equal({"1","2"})
