@@ -1,12 +1,12 @@
 local suite = Suite("redis keys")
 suite.setup(function()
-  _.outlet.list({"command","flushdb"})
-  _.outlet.list({"command","SET","KEY1","VALUE1"})
-  _.outlet.list({"command","SET","KEY2","VALUE2"})
-  _.outlet.list({"command","SET","KEY3","VALUE3"})
+  _.outlet({"command","flushdb"})
+  _.outlet({"command","SET","KEY1","VALUE1"})
+  _.outlet({"command","SET","KEY2","VALUE2"})
+  _.outlet({"command","SET","KEY3","VALUE3"})
 end)
 suite.teardown(function()
-  _.outlet.list({"command","flushdb"})
+  _.outlet({"command","flushdb"})
 end)
 
 suite.case("DEL"
@@ -30,9 +30,9 @@ suite.case("EXISTS"
     ).should:equal(1)
 
 suite.case("RENAME"
-  ).test(function()
-    _.outlet.list({"command","RENAME","KEY1","KEY10"})
-    Test.list({"command","GET","KEY10"})
+  ).test(function(test)
+    _.outlet({"command","RENAME","KEY1","KEY10"})
+    test({"command","GET","KEY10"})
   end).should:equal("VALUE1")
   
 suite.case("TYPE"
@@ -52,15 +52,15 @@ suite.case("PERSIST already"
     ).should:equal(0)
 
 suite.case("PERSIST"
-  ).test(function()
-    _.outlet.list({"command","EXPIRE","KEY1","10"})
-    Test.list({"command","PERSIST","KEY1"})
+  ).test(function(test)
+    _.outlet({"command","EXPIRE","KEY1","10"})
+    test({"command","PERSIST","KEY1"})
   end).should:equal(1)
 
 suite.case("TTL expired"
-  ).test(function()
-    _.outlet.list({"command","EXPIRE","KEY1","10"})
-    Test.list({"command","TTL","KEY1"})
+  ).test(function(test)
+    _.outlet({"command","EXPIRE","KEY1","10"})
+    test({"command","TTL","KEY1"})
   end).should:equal(10)
 
 suite.case("OBJECT REFCOUNT"
@@ -80,27 +80,27 @@ suite.case("RENAMENX fail!"
     ).should:equal(0)
 
 suite.case("RENAMENX succeed!"
-  ).test(function()
-    _.outlet.list({"command","RENAMENX","KEY1","KEY10"})
-    Test.list({"command","GET","KEY10"})
+  ).test(function(test)
+    _.outlet({"command","RENAMENX","KEY1","KEY10"})
+    test({"command","GET","KEY10"})
   end).should:equal("VALUE1")
 
 suite.case("SORT DESC"
-  ).test(function()
-    _.outlet.list({"command","RPUSH","MYLIST","0"})
-    _.outlet.list({"command","RPUSH","MYLIST","1"})
-    _.outlet.list({"command","RPUSH","MYLIST","1"})
-    _.outlet.list({"command","RPUSH","MYLIST","2"})
-    _.outlet.list({"command","RPUSH","MYLIST","3"})
-    Test.list({"command","SORT","MYLIST","DESC"})
+  ).test(function(test)
+    _.outlet({"command","RPUSH","MYLIST","0"})
+    _.outlet({"command","RPUSH","MYLIST","1"})
+    _.outlet({"command","RPUSH","MYLIST","1"})
+    _.outlet({"command","RPUSH","MYLIST","2"})
+    _.outlet({"command","RPUSH","MYLIST","3"})
+    test({"command","SORT","MYLIST","DESC"})
   end).should:equal({"3","2","1","1","0"})
 
 suite.case("SORT LIMIT"
-  ).test(function()
-    _.outlet.list({"command","RPUSH","MYLIST","0"})
-    _.outlet.list({"command","RPUSH","MYLIST","1"})
-    _.outlet.list({"command","RPUSH","MYLIST","1"})
-    _.outlet.list({"command","RPUSH","MYLIST","2"})
-    _.outlet.list({"command","RPUSH","MYLIST","3"})
-    Test.list({"command","SORT","MYLIST","LIMIT","2","2"})
+  ).test(function(test)
+    _.outlet({"command","RPUSH","MYLIST","0"})
+    _.outlet({"command","RPUSH","MYLIST","1"})
+    _.outlet({"command","RPUSH","MYLIST","1"})
+    _.outlet({"command","RPUSH","MYLIST","2"})
+    _.outlet({"command","RPUSH","MYLIST","3"})
+    test({"command","SORT","MYLIST","LIMIT","2","2"})
   end).should:equal({"1","2"})

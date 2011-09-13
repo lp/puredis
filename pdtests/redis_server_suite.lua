@@ -1,9 +1,9 @@
 local server_suite = Suite("redis server commands")
 server_suite.setup(function()
-  _.outlet.list({"command","flushdb"})
+  _.outlet({"command","flushdb"})
 end)
 server_suite.teardown(function()
-  _.outlet.list({"command","flushdb"})
+  _.outlet({"command","flushdb"})
 end)
 
 server_suite.case("PING"
@@ -21,15 +21,15 @@ server_suite.case("INFO"
 server_suite.case("DBSIZE"
   ).test({"command","DBSIZE"}
     ).should:equal(0
-  ).test(function()
-    _.outlet.list({"command","SET","FOO","BAR"})
-    Test.list({"command","DBSIZE"})
+  ).test(function(test)
+    _.outlet({"command","SET","FOO","BAR"})
+    test({"command","DBSIZE"})
   end).should:equal(1)
   
 server_suite.case("DEBUG OBJECT"
-  ).test(function()
-    _.outlet.list({"command","SET","FOO","BAR"})
-    Test.list({"command","DEBUG","OBJECT","FOO"})
+  ).test(function(test)
+    _.outlet({"command","SET","FOO","BAR"})
+    test({"command","DEBUG","OBJECT","FOO"})
   end).should:match("^Value at")
   
 server_suite.case("LASTSAVE"
