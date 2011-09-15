@@ -593,6 +593,7 @@ static void setup_apuredis(void)
 /* apuredis data yielding callback */ 
 static void apuredis_yield(t_redis * x)
 {
+    int prev_num = x->async_num;
     if (x->async_num > 0) {
         void * tmpreply = NULL;
         if ( redisGetReply(x->redis, &tmpreply) == REDIS_ERR) return;
@@ -616,7 +617,9 @@ static void apuredis_yield(t_redis * x)
             redis_parseReply(x, reply);
         }
     }
-    apuredis_q_out(x);
+    
+    if ((x->async_num == 0) || (prev_num != x->async_num))
+      apuredis_q_out(x);
 }
 
 /* apuredis outputs queue lenght on second outlet */
@@ -640,7 +643,7 @@ static void apuredis_schedule(t_redis *x)
     if ((!x->async_run) || x->async_num < 1) {
         clock_unset(x->async_clock);
     } else if (x->async_run && x->async_num > 0) {
-        clock_delay(x->async_clock, 0);
+        clock_delay(x->async_clock, 1);
     }
 }
 
