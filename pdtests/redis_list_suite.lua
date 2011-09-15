@@ -1,12 +1,12 @@
-local list_suite = Suite("redis list suite")
-list_suite.setup(function()
+local suite = Suite("redis list suite")
+suite.setup(function()
   _.outlet({"command","flushdb"})
 end)
-list_suite.teardown(function()
+suite.teardown(function()
   _.outlet({"command","flushdb"})
 end)
 
-list_suite.case("LRANGE"
+suite.case("LRANGE"
   ).test(function(test)
     _.outlet({"command","RPUSH","MYLIST","MYVALUE1"})
     _.outlet({"command","RPUSH","MYLIST","MYVALUE2"})
