@@ -1,10 +1,10 @@
-#N canvas 623 49 490 504 10;
+#N canvas 594 232 490 504 10;
 #X obj 32 114 route list;
 #X msg 40 51 start;
 #X msg 93 52 stop;
 #X msg 39 82 reset;
 #X obj 17 190 print message:::;
-#X msg 149 50 suite redis_list_suite.lua;
+#X msg 161 70 suite redis_list_suite.lua;
 #X msg 133 9 suite redis_server_suite.lua;
 #X obj 269 238 print out:::;
 #X obj 214 212 print f:::;
@@ -17,6 +17,7 @@
 #X obj 360 216 print not:::;
 #X obj 127 131 apuredis;
 #X obj 253 111 metro 500;
+#X msg 147 51 suite redis_string_suite.lua;
 #X connect 0 0 16 0;
 #X connect 1 0 12 0;
 #X connect 2 0 12 0;
@@ -34,3 +35,4 @@
 #X connect 16 0 14 0;
 #X connect 16 1 17 0;
 #X connect 17 0 16 0;
+#X connect 18 0 12 0;
