@@ -1,0 +1,15 @@
+local suite = Suite("redis list suite")
+suite.setup(function()
+  _.outlet({"command","flushdb"})
+end)
+suite.teardown(function()
+  _.outlet({"command","flushdb"})
+end)
+
+suite.case("LRANGE"
+  ).test(function(test)
+    _.outlet({"command","RPUSH","MYLIST","MYVALUE1"})
+    _.outlet({"command","RPUSH","MYLIST","MYVALUE2"})
+    _.outlet({"command","RPUSH","MYLIST","MYVALUE3"})
+    test({"command","LRANGE","MYLIST","0","-1"})
+  end).should:equal({"MYVALUE1","MYVALUE2","MYVALUE3"})

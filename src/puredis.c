@@ -24,21 +24,36 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <string.h>
 #include <csv.h>
 
-/* gcc -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace -arch i386 -I/Applications/Pd-extended.app/Contents/Resources/include -I./hiredis/includes ./hiredis/libhiredis.a -o puredis.pd_darwin puredis.c */
-
 #define PUREDIS_MAJOR 0
 #define PUREDIS_MINOR 5
-#define PUREDIS_PATCH 0
+#define PUREDIS_PATCH 2
 #define PD_MAJOR_VERSION 0
 #define PD_MINOR_VERSION 42
 
 #define MAX_ARRAY_SIZE 512
 
+/************************************
+ * Puredis                          *
+ *  Puredata Redis External         *
+ *                                  *
+ ************************************/
 static t_class *puredis_class;
+
+/************************************
+ * Apuredis                         *
+ *  Async Redis External for PD     *
+ *                                  *
+ ************************************/
 static t_class *apuredis_class;
+
+/************************************
+ * Spuredis                         *
+ *  Redis Subscriber external for PD*
+ *                                  *
+ ************************************/
 static t_class *spuredis_class;
 
-typedef struct _puredis {
+typedef struct _redis {
     t_object x_obj;
     redisContext * redis;
     
@@ -70,57 +85,57 @@ typedef struct _puredis {
     /* zset loader vars */
     int zcount;
     char * zscore;
-} t_puredis;
+} t_redis;
 
 /* declarations */
 void puredis_setup(void);
 
 /* memory */
 static void freeVectorAndLengths(int argc, char ** vector, size_t * lengths);
-void redis_free(t_puredis *x);
+void redis_free(t_redis *x);
 
 /* general */
 void *redis_new(t_symbol *s, int argc, t_atom *argv);
-void redis_command(t_puredis *x, t_symbol *s, int argc, t_atom *argv);
-static void redis_postCommandAsync(t_puredis * x, int argc, char ** vector, size_t * lengths);
-static void redis_prepareOutList(t_puredis *x, redisReply * reply);
-static void redis_parseReply(t_puredis *x, redisReply * reply);
+void redis_command(t_redis *x, t_symbol *s, int argc, t_atom *argv);
+static void redis_postCommandAsync(t_redis * x, int argc, char ** vector, size_t * lengths);
+static void redis_prepareOutList(t_redis *x, redisReply * reply);
+static void redis_parseReply(t_redis *x, redisReply * reply);
 
 /* puredis */
 static void setup_puredis(void);
-static void puredis_postCommandSync(t_puredis * x, int argc, char ** vector, size_t * lengths);
-static void puredis_csv_postCommand(t_puredis * x, int argc, char ** vector, size_t * lengths);
-static void puredis_csv_parse(t_puredis *x, int argc, void *s, size_t i);
+static void puredis_postCommandSync(t_redis * x, int argc, char ** vector, size_t * lengths);
+static void puredis_csv_postCommand(t_redis * x, int argc, char ** vector, size_t * lengths);
+static void puredis_csv_parse(t_redis *x, int argc, void *s, size_t i);
 static void puredis_csv_cb1 (void *s, size_t i, void *userdata);
 static void puredis_csv_cb2 (int c, void *userdata);
-static void puredis_csv_init(t_puredis *x);
-static void puredis_csv_free(t_puredis *x);
-void puredis_csv(t_puredis *x, t_symbol *s, int argc, t_atom *argv);
+static void puredis_csv_init(t_redis *x);
+static void puredis_csv_free(t_redis *x);
+void puredis_csv(t_redis *x, t_symbol *s, int argc, t_atom *argv);
 
 /* async redis */
 static void setup_apuredis(void);
-static void apuredis_yield(t_puredis * x);
-static void apuredis_q_out(t_puredis * x);
-static void apuredis_run(t_puredis *x);
-static void apuredis_schedule(t_puredis *x);
-void apuredis_bang(t_puredis *x);
-void apuredis_start(t_puredis *x, t_symbol *s);
-void apuredis_stop(t_puredis *x, t_symbol *s);
+static void apuredis_yield(t_redis * x);
+static void apuredis_q_out(t_redis * x);
+static void apuredis_run(t_redis *x);
+static void apuredis_schedule(t_redis *x);
+void apuredis_bang(t_redis *x);
+void apuredis_start(t_redis *x, t_symbol *s);
+void apuredis_stop(t_redis *x, t_symbol *s);
 
 /* subscriber redis */
 static void setup_spuredis(void);
-static void spuredis_run(t_puredis *x);
-static void spuredis_schedule(t_puredis *x);
-static void spuredis_manage(t_puredis *x, t_symbol *s, int argc);
-void spuredis_bang(t_puredis *x);
-void spuredis_start(t_puredis *x, t_symbol *s);
-void spuredis_stop(t_puredis *x, t_symbol *s);
-void spuredis_subscribe(t_puredis *x, t_symbol *s, int argc, t_atom *argv);
+static void spuredis_run(t_redis *x);
+static void spuredis_schedule(t_redis *x);
+static void spuredis_manage(t_redis *x, t_symbol *s, int argc);
+void spuredis_bang(t_redis *x);
+void spuredis_start(t_redis *x, t_symbol *s);
+void spuredis_stop(t_redis *x, t_symbol *s);
+void spuredis_subscribe(t_redis *x, t_symbol *s, int argc, t_atom *argv);
 
 
 /* implementation */
 
-/* setup */
+/* mandatory PD setup method */
 void puredis_setup(void)
 {
     setup_puredis();
@@ -130,7 +145,7 @@ void puredis_setup(void)
     post("Puredis: compiled for pd-%d.%d on %s %s", PD_MAJOR_VERSION, PD_MINOR_VERSION, __DATE__, __TIME__);
 }
 
-/* memory */
+/* memory management methods */
 
 static void freeVectorAndLengths(int argc, char ** vector, size_t * lengths)
 {
@@ -140,20 +155,21 @@ static void freeVectorAndLengths(int argc, char ** vector, size_t * lengths)
     free(lengths);
 }
 
-void redis_free(t_puredis *x)
+void redis_free(t_redis *x)
 {
     redisFree(x->redis);
 }
 
-/* general */
+/* common methods */
 
+/* constructor used by Puredis, Apuredis and Spuredis */
 void *redis_new(t_symbol *s, int argc, t_atom *argv)
 {
-    t_puredis *x = NULL;
+    t_redis *x = NULL;
     
-    int port = 6379;
-    char host[16] = "127.0.0.1";
-    switch(argc){
+    int port = 6379;                /* default port */
+    char host[16] = "127.0.0.1";    /* default IP address */
+    switch(argc){   /* parsing init arguments */
         default:
             break;
         case 2:
@@ -165,18 +181,19 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
             break;
     }
     
+    /* class initialisation */
     if (s == gensym("apuredis")) {
-        x = (t_puredis*)pd_new(apuredis_class);
+        x = (t_redis*)pd_new(apuredis_class);
         x->redis = redisConnectNonBlock((char*)host,port);
         x->async = 1; x->async_num = 0; x->async_run = 0;
         x->async_clock = clock_new(x, (t_method)apuredis_run);
     } else if (s == gensym("spuredis")) {
-        x = (t_puredis*)pd_new(spuredis_class);
+        x = (t_redis*)pd_new(spuredis_class);
         x->redis = redisConnectNonBlock((char*)host,port);
         x->async_clock = clock_new(x, (t_method)spuredis_run);
         x->async_num = 0; x->async_run = 0;
     } else {
-        x = (t_puredis*)pd_new(puredis_class);
+        x = (t_redis*)pd_new(puredis_class);
         x->redis = redisConnect((char*)host,port);
         x->async = 0;
     }
@@ -196,7 +213,8 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
     return (void*)x;
 }
 
-void redis_command(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
+/* redis command parsing -- Puredis/Apuredis */
+void redis_command(t_redis *x, t_symbol *s, int argc, t_atom *argv)
 {
     if (argc < 1) {
         post("puredis: wrong command"); return;
@@ -231,13 +249,15 @@ void redis_command(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
     }
 }
 
-static void redis_postCommandAsync(t_puredis * x, int argc, char ** vector, size_t * lengths)
+/* sends command async to Redis */
+static void redis_postCommandAsync(t_redis * x, int argc, char ** vector, size_t * lengths)
 {
     redisAppendCommandArgv(x->redis, argc, (const char**)vector, (const size_t *)lengths);
     freeVectorAndLengths(argc, vector, lengths);
 }
 
-static void redis_prepareOutList(t_puredis *x, redisReply * reply)
+/* recursive redis reply parsing as pd list */
+static void redis_prepareOutList(t_redis *x, redisReply * reply)
 {
     if (reply->type == REDIS_REPLY_ERROR) {
         SETSYMBOL(&x->out[x->out_count],gensym(reply->str));
@@ -262,7 +282,8 @@ static void redis_prepareOutList(t_puredis *x, redisReply * reply)
     }
 }
 
-static void redis_parseReply(t_puredis *x, redisReply * reply)
+/* sends redis reply to outlet */
+static void redis_parseReply(t_redis *x, redisReply * reply)
 {
     if (reply->type == REDIS_REPLY_ERROR) {
         outlet_symbol(x->x_obj.ob_outlet, gensym(reply->str));
@@ -286,12 +307,13 @@ static void redis_parseReply(t_puredis *x, redisReply * reply)
 
 /* puredis */
 
+/* puredis setup method */
 static void setup_puredis(void)
 {
     puredis_class = class_new(gensym("puredis"),
         (t_newmethod)redis_new,
         (t_method)redis_free,
-        sizeof(t_puredis),
+        sizeof(t_redis),
         CLASS_DEFAULT,
         A_GIMME, 0);
     
@@ -304,14 +326,16 @@ static void setup_puredis(void)
     class_sethelpsymbol(puredis_class, gensym("puredis-help"));
 }
 
-static void puredis_postCommandSync(t_puredis * x, int argc, char ** vector, size_t * lengths)
+/* sends command sync to Redis */
+static void puredis_postCommandSync(t_redis * x, int argc, char ** vector, size_t * lengths)
 {
     redisReply * reply = redisCommandArgv(x->redis, argc, (const char**)vector, (const size_t *)lengths);
     freeVectorAndLengths(argc, vector, lengths);
     redis_parseReply(x,reply);
 }
 
-static void puredis_csv_postCommand(t_puredis * x, int argc, char ** vector, size_t * lengths)
+/* sends command sync to redis for csv data loading */
+static void puredis_csv_postCommand(t_redis * x, int argc, char ** vector, size_t * lengths)
 {
     redisReply * reply = redisCommandArgv(x->redis, argc, (const char**)vector, (const size_t *)lengths);
     freeVectorAndLengths(argc, vector, lengths);
@@ -324,7 +348,8 @@ static void puredis_csv_postCommand(t_puredis * x, int argc, char ** vector, siz
     freeReplyObject(reply);
 }
 
-static void puredis_csv_parse(t_puredis *x, int argc, void *s, size_t i)
+/* parse csv data and loads it in redis */
+static void puredis_csv_parse(t_redis *x, int argc, void *s, size_t i)
 {
     char ** vector = NULL;
     size_t * lengths = NULL;
@@ -369,9 +394,10 @@ static void puredis_csv_parse(t_puredis *x, int argc, void *s, size_t i)
     puredis_csv_postCommand(x, argc, vector, lengths);
 }
 
+/* libcsv callback for each values in csv data */
 static void puredis_csv_cb1 (void *s, size_t i, void *userdata)
 {
-    t_puredis *x = (t_puredis *)userdata;
+    t_redis *x = (t_redis *)userdata;
     
     if (x->lnew && x->lkey[0] == '#') return;
     
@@ -438,14 +464,16 @@ static void puredis_csv_cb1 (void *s, size_t i, void *userdata)
     }
 }
 
+/* libcsv callback for each line change in csv data */
 static void puredis_csv_cb2 (int c, void *userdata)
 {
-    t_puredis *x = (t_puredis *)userdata;
+    t_redis *x = (t_redis *)userdata;
     x->lnew = 0;
     x->lcount++;
 }
 
-static void puredis_csv_init(t_puredis *x)
+/* libcsv csv data parsing initialization */
+static void puredis_csv_init(t_redis *x)
 {
     x->lcount = 0; x->lnew = 0; x->lnumload = 0; x->lnumerror = 0;
     if ((x->lkey = malloc(8)) == NULL) {
@@ -481,7 +509,8 @@ static void puredis_csv_init(t_puredis *x)
     strcpy(x->lcmd, cmd);
 }
 
-static void puredis_csv_free(t_puredis *x)
+/* libcsv cleanup */
+static void puredis_csv_free(t_redis *x)
 {
     free(x->lkey);
     free(x->lcmd);
@@ -494,7 +523,8 @@ static void puredis_csv_free(t_puredis *x)
     }
 }
 
-void puredis_csv(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
+/* puredis csv data load method */
+void puredis_csv(t_redis *x, t_symbol *s, int argc, t_atom *argv)
 {
     char buf[1024]; size_t i; char filename[256];
     atom_string(argv, filename, 256);
@@ -537,12 +567,15 @@ void puredis_csv(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
     outlet_list(x->x_obj.ob_outlet, &s_list, 7, &stats[0]);
 }
 
+/* apuredis */
+
+/* apuredis setup method */
 static void setup_apuredis(void)
 {
     apuredis_class = class_new(gensym("apuredis"),
         (t_newmethod)redis_new,
         (t_method)redis_free,
-        sizeof(t_puredis),
+        sizeof(t_redis),
         CLASS_DEFAULT,
         A_GIMME, 0);
     
@@ -557,8 +590,10 @@ static void setup_apuredis(void)
     class_sethelpsymbol(apuredis_class, gensym("apuredis-help"));
 }
 
-static void apuredis_yield(t_puredis * x)
+/* apuredis data yielding callback */ 
+static void apuredis_yield(t_redis * x)
 {
+    int prev_num = x->async_num;
     if (x->async_num > 0) {
         void * tmpreply = NULL;
         if ( redisGetReply(x->redis, &tmpreply) == REDIS_ERR) return;
@@ -582,54 +617,65 @@ static void apuredis_yield(t_puredis * x)
             redis_parseReply(x, reply);
         }
     }
-    apuredis_q_out(x);
+    
+    if ((x->async_num == 0) || (prev_num != x->async_num))
+      apuredis_q_out(x);
 }
 
-static void apuredis_q_out(t_puredis * x)
+/* apuredis outputs queue lenght on second outlet */
+static void apuredis_q_out(t_redis * x)
 {
     t_atom value;
     SETFLOAT(&value, x->async_num);
     outlet_float(x->q_out, atom_getfloat(&value));
 }
 
-static void apuredis_run(t_puredis *x)
+/* apuredis scheduled callback */
+static void apuredis_run(t_redis *x)
 {
     apuredis_yield(x);
     apuredis_schedule(x);
 }
 
-static void apuredis_schedule(t_puredis *x)
+/* apuredis (re-)scheduling method */
+static void apuredis_schedule(t_redis *x)
 {
     if ((!x->async_run) || x->async_num < 1) {
         clock_unset(x->async_clock);
     } else if (x->async_run && x->async_num > 0) {
-        clock_delay(x->async_clock, 0);
+        clock_delay(x->async_clock, 1);
     }
 }
 
-void apuredis_bang(t_puredis *x)
+/* apuredis manual yielding method w/bang */
+void apuredis_bang(t_redis *x)
 {
     apuredis_yield(x);
 }
 
-void apuredis_start(t_puredis *x, t_symbol *s)
+/* apuredis start message method */
+void apuredis_start(t_redis *x, t_symbol *s)
 {
     x->async_run = 1;
     apuredis_schedule(x);
 }
 
-void apuredis_stop(t_puredis *x, t_symbol *s)
+/* apuredis stop message method */
+void apuredis_stop(t_redis *x, t_symbol *s)
 {
     x->async_run = 0;
     apuredis_schedule(x);
 }
 
+/* spuredis */
+
+/* spuredis setup method */
 static void setup_spuredis(void)
 {
     spuredis_class = class_new(gensym("spuredis"),
         (t_newmethod)redis_new,
         (t_method)redis_free,
-        sizeof(t_puredis),
+        sizeof(t_redis),
         CLASS_DEFAULT,
         A_GIMME, 0);
     
@@ -647,7 +693,8 @@ static void setup_spuredis(void)
     class_sethelpsymbol(spuredis_class, gensym("spuredis-help"));
 }
 
-static void spuredis_run(t_puredis *x)
+/* spuredis scheduled callback */
+static void spuredis_run(t_redis *x)
 {
     if (x->async_run) {
         void * tmpreply = NULL;
@@ -674,7 +721,8 @@ static void spuredis_run(t_puredis *x)
     }
 }
 
-static void spuredis_schedule(t_puredis *x)
+/* spuredis (re-)scheduling method */
+static void spuredis_schedule(t_redis *x)
 {
     if (x->async_run && x->async_num < 1) {
         x->async_run = 0;
@@ -685,7 +733,8 @@ static void spuredis_schedule(t_puredis *x)
     }
 }
 
-static void spuredis_manage(t_puredis *x, t_symbol *s, int argc)
+/* spuredis subscriptions management */
+static void spuredis_manage(t_redis *x, t_symbol *s, int argc)
 {
     if (s == gensym("subscribe")) {
         x->async_num = x->async_num + argc;
@@ -696,22 +745,26 @@ static void spuredis_manage(t_puredis *x, t_symbol *s, int argc)
     spuredis_schedule(x);
 }
 
-void spuredis_bang(t_puredis *x)
+/* apuredis alternate start method with bang */
+void spuredis_bang(t_redis *x)
 {
     spuredis_schedule(x);
 }
 
-void spuredis_start(t_puredis *x, t_symbol *s)
+/* apuredis start message method */
+void spuredis_start(t_redis *x, t_symbol *s)
 {
     spuredis_schedule(x);
 }
 
-void spuredis_stop(t_puredis *x, t_symbol *s)
+/* apuredis stop message  method */
+void spuredis_stop(t_redis *x, t_symbol *s)
 {
     x->async_run = 0;
 }
 
-void spuredis_subscribe(t_puredis *x, t_symbol *s, int argc, t_atom *argv)
+/* apuredis subscribe message  method */
+void spuredis_subscribe(t_redis *x, t_symbol *s, int argc, t_atom *argv)
 {
     if (argc < 1) {
         post("spuredis: subscribe need at least one channel"); return;

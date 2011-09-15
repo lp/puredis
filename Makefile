@@ -33,7 +33,7 @@ puredis_mingw = src/puredis.dll
 # FIXME: Windows?
 CFLAGS_linux = -shared
 LIBS_linux =
-CFLAGS_macosx = -bundle -undefined suppress -flat_namespace -arch i386
+CFLAGS_macosx = -bundle -undefined suppress -flat_namespace
 LIBS_macosx =
 CFLAGS_mingw = -shared -DMSW
 LIBS_mingw = pd.dll
@@ -58,7 +58,6 @@ HIREDISL_macosx = $(HIREDISD)/libhiredis.a
 HIREDISL_linux = $(HIREDISD)/libhiredis.so
 HIREDISL_mingw = 
 
-#CFLAGS = -ansi -Wall -O2 -fPIC -bundle -undefined suppress -flat_namespace $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
 CFLAGS = -ansi -Wall -O2 -fPIC $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
 
 # build
@@ -74,7 +73,7 @@ install:
 
 # compile
 $(puredis_$(PLATFORM)): $(puredis_src) $(HIREDISD)/build.stamp $(LIBCSVD)/build.stamp
-	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL_$(PLATFORM)) $(LIBCSVL_$PLATFORM()) -o $(puredis_$(PLATFORM)) $(puredis_src)
+	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL_$(PLATFORM)) $(LIBCSVL_$(PLATFORM)) -o $(puredis_$(PLATFORM)) $(puredis_src)
 
 # get hiredis: download, unpack, compile, install locally
 $(HIREDISD)/build.stamp: $(HIREDISD)/unpack.stamp

@@ -8,7 +8,12 @@ bc. wget https://github.com/lp/puredis/tarball/master
 PUREDIS_SRC=`find . -name lp-puredis-* -print`
 tar xzf $PUREDIS_SRC
 cd ${PUREDIS_SRC:0:20}
+# *** edit the Makefile top portion with proper system settings ***
 make
+
+h2. Dependencies
+
+p. The build process will take care of fetching, compiling and linking to "Hiredis":https://github.com/antirez/hiredis and "libcsv":http://sourceforge.net/projects/libcsv/.  The core and purpose of this external, "Redis":http://redis.io/, is not bundled herein and must be installed separately.  The only mandatory Redis configuration (redis.conf) option for Puredis is "timeout 0" (meaning no timeout), unless your use of Puredis is limited to short time spans.
 
 h2. Usage:
 
