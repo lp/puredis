@@ -50,7 +50,7 @@ LIBCSVURL = http://downloads.sourceforge.net/project/libcsv/libcsv/libcsv-3.0.1/
 # Hiredis setup
 HIREDIS = hiredis
 HIREDISD = antirez-hiredis-3cc6a7f
-HIREDISTGZ = antirez-hiredis-v0.10.1-0-g3cc6a7f.tar.gz
+HIREDISTGZ = v0.10.1
 HIREDISURL = https://github.com/antirez/hiredis/tarball/v0.10.1
 HIREDISI = -I$(HIREDISD)
 HIREDISL_macosx = $(HIREDISD)/libhiredis.a
@@ -65,6 +65,10 @@ default: $(puredis_$(PLATFORM))
 # clean up
 clean:
 	rm -f $(puredis_$(PLATFORM))
+	rm -f -R $(HIREDISD)
+	rm -f $(HIREDISTGZ)
+	rm -f -R $(LIBCSVD)
+	rm -f $(LIBCSVTGZ)
 
 # install
 install:
