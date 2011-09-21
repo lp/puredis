@@ -66,6 +66,7 @@ typedef struct _redis {
     int async;
     t_outlet *q_out;
     int async_num;
+    int async_prev_num;
     int async_run;
     t_clock  *async_clock;
     
@@ -185,7 +186,8 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
     if (s == gensym("apuredis")) {
         x = (t_redis*)pd_new(apuredis_class);
         x->redis = redisConnectNonBlock((char*)host,port);
-        x->async = 1; x->async_num = 0; x->async_run = 0;
+        x->async = 1; x->async_num = 0;
+        x->async_prev_num = 0; x->async_run = 0;
         x->async_clock = clock_new(x, (t_method)apuredis_run);
     } else if (s == gensym("spuredis")) {
         x = (t_redis*)pd_new(spuredis_class);
@@ -593,7 +595,6 @@ static void setup_apuredis(void)
 /* apuredis data yielding callback */ 
 static void apuredis_yield(t_redis * x)
 {
-    int prev_num = x->async_num;
     if (x->async_num > 0) {
         void * tmpreply = NULL;
         if ( redisGetReply(x->redis, &tmpreply) == REDIS_ERR) return;
@@ -618,8 +619,10 @@ static void apuredis_yield(t_redis * x)
         }
     }
     
-    if ((x->async_num == 0) || (prev_num != x->async_num))
+    if (x->async_prev_num != x->async_num) {
+      x->async_prev_num = x->async_num;
       apuredis_q_out(x);
+    }
 }
 
 /* apuredis outputs queue lenght on second outlet */
