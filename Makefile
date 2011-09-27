@@ -66,6 +66,10 @@ default: $(puredis_$(PLATFORM))
 # clean up
 clean:
 	rm -f $(puredis_$(PLATFORM))
+	rm -f -R $(HIREDISD)
+	rm -f $(HIREDISTGZ)
+	rm -f -R $(LIBCSVD)
+	rm -f $(LIBCSVTGZ)
 
 # install
 install:
