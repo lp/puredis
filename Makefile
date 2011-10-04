@@ -54,7 +54,7 @@ HIREDISTGZ = v0.10.1
 HIREDISURL = https://github.com/antirez/hiredis/tarball/v0.10.1
 HIREDISI = -I$(HIREDISD)
 HIREDISL_macosx = $(HIREDISD)/libhiredis.a
-HIREDISL_linux = $(HIREDISD)/libhiredis.so
+HIREDISL_linux = $(HIREDISD)/libhiredis.a
 HIREDISL_mingw = 
 
 CFLAGS = -ansi -Wall -O2 -fPIC $(ARCH) $(HIREDISI) $(LIBCSVI) $(PDINCLUDE)
@@ -76,7 +76,7 @@ install:
 
 # compile
 $(puredis_$(PLATFORM)): $(puredis_src) $(HIREDISD)/build.stamp $(LIBCSVD)/build.stamp
-	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) $(HIREDISL_$(PLATFORM)) $(LIBCSVL_$(PLATFORM)) -o $(puredis_$(PLATFORM)) $(puredis_src)
+	gcc $(CFLAGS) $(CFLAGS_$(PLATFORM)) -o $(puredis_$(PLATFORM)) $(puredis_src) $(HIREDISL_$(PLATFORM)) $(LIBCSVL_$(PLATFORM))
 
 # get hiredis: download, unpack, compile, install locally
 $(HIREDISD)/build.stamp: $(HIREDISD)/unpack.stamp
