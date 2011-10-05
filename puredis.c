@@ -26,7 +26,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define PUREDIS_MAJOR 0
 #define PUREDIS_MINOR 5
-#define PUREDIS_PATCH 2
+#define PUREDIS_PATCH 3
 #define PD_MAJOR_VERSION 0
 #define PD_MINOR_VERSION 42
 
@@ -218,6 +218,7 @@ void *redis_new(t_symbol *s, int argc, t_atom *argv)
 /* redis command parsing -- Puredis/Apuredis */
 void redis_command(t_redis *x, t_symbol *s, int argc, t_atom *argv)
 {
+    (void)s;
     if (argc < 1) {
         post("puredis: wrong command"); return;
     }
@@ -469,6 +470,7 @@ static void puredis_csv_cb1 (void *s, size_t i, void *userdata)
 /* libcsv callback for each line change in csv data */
 static void puredis_csv_cb2 (int c, void *userdata)
 {
+    (void)c;
     t_redis *x = (t_redis *)userdata;
     x->lnew = 0;
     x->lcount++;
@@ -528,6 +530,7 @@ static void puredis_csv_free(t_redis *x)
 /* puredis csv data load method */
 void puredis_csv(t_redis *x, t_symbol *s, int argc, t_atom *argv)
 {
+    (void)s; (void)argc;
     char buf[1024]; size_t i; char filename[256];
     atom_string(argv, filename, 256);
     x->ltype = atom_getsymbol(argv+1);
@@ -659,6 +662,7 @@ void apuredis_bang(t_redis *x)
 /* apuredis start message method */
 void apuredis_start(t_redis *x, t_symbol *s)
 {
+    (void)s;
     x->async_run = 1;
     apuredis_schedule(x);
 }
@@ -666,6 +670,7 @@ void apuredis_start(t_redis *x, t_symbol *s)
 /* apuredis stop message method */
 void apuredis_stop(t_redis *x, t_symbol *s)
 {
+    (void)s;
     x->async_run = 0;
     apuredis_schedule(x);
 }
@@ -757,12 +762,14 @@ void spuredis_bang(t_redis *x)
 /* apuredis start message method */
 void spuredis_start(t_redis *x, t_symbol *s)
 {
+    (void)s;
     spuredis_schedule(x);
 }
 
 /* apuredis stop message  method */
 void spuredis_stop(t_redis *x, t_symbol *s)
 {
+    (void)s;
     x->async_run = 0;
 }
 
