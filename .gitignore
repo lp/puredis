@@ -1,0 +1,9 @@
+*.o
+*.pd_*
+*.deb
+*.dll
+libpuredis.so
+libpuredis.dylib
+libpuredis.dll
+libcsv*
+antirez-hiredis*
